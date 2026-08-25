@@ -3,6 +3,7 @@ import json
 import subprocess
 import os
 import shutil
+import socket
 import urllib.request
 import urllib.error
 import config
@@ -38,6 +39,15 @@ def load_json(filepath):
         return None
     with open(filepath) as f:
         return json.load(f)
+
+def get_hostname():
+    """Actual machine hostname — used in the dashboard header instead
+    of a hardcoded 'Raspberry Pi 4' label, since this now also runs
+    on other hardware (verified on an Ubuntu VM, 2026-08-25)."""
+    try:
+        return socket.gethostname()
+    except Exception:
+        return 'This Device'
 
 def get_history():
     if not os.path.exists(config.HISTORY_DIR):
@@ -119,8 +129,12 @@ def read_memory():
         return None
 
 def read_cpu_temp():
-    """Read the Pi's CPU temperature via vcgencmd, if available.
-    Returns None gracefully on non-Pi hardware where vcgencmd doesn't exist."""
+    """Read CPU temperature. Tries multiple methods since this can run
+    on Raspberry Pi hardware, generic Linux hardware, or inside a VM
+    (where no real sensor may be exposed at all — in that case this
+    correctly returns None rather than fabricating a number)."""
+
+    # Method 1: Raspberry Pi firmware tool
     try:
         result = subprocess.run(
             ['vcgencmd', 'measure_temp'],
@@ -132,6 +146,41 @@ def read_cpu_temp():
             return round(float(temp_str), 1)
     except Exception:
         pass
+
+    # Method 2: standard Linux thermal zone interface (works on most
+    # real laptops/desktops; usually absent or non-functional in VMs
+    # since it depends on the hypervisor exposing real sensor data).
+    try:
+        base = '/sys/class/thermal'
+        if os.path.isdir(base):
+            zones = sorted(d for d in os.listdir(base) if d.startswith('thermal_zone'))
+            preferred_keywords = ('cpu', 'pkg', 'soc', 'core')
+
+            candidates = []
+            for zone in zones:
+                temp_path = os.path.join(base, zone, 'temp')
+                type_path = os.path.join(base, zone, 'type')
+                if not os.path.exists(temp_path):
+                    continue
+                zone_type = ''
+                if os.path.exists(type_path):
+                    with open(type_path) as f:
+                        zone_type = f.read().strip().lower()
+                candidates.append((zone_type, temp_path))
+
+            # Try zones whose type looks CPU-related first, then any zone
+            candidates.sort(key=lambda c: not any(k in c[0] for k in preferred_keywords))
+
+            for _, temp_path in candidates:
+                with open(temp_path) as f:
+                    millidegrees = int(f.read().strip())
+                celsius = millidegrees / 1000.0
+                # Sanity check — some VMs/sensors report bogus 0 or negative values
+                if 0 < celsius < 150:
+                    return round(celsius, 1)
+    except Exception:
+        pass
+
     return None
 
 def read_ollama_status():
@@ -182,7 +231,8 @@ def index():
                            analysis=analysis,
                            report=report_text,
                            scan_meta=scan_meta,
-                           history=history)
+                           history=history,
+                           hostname=get_hostname())
 
 @app.route('/history/<scan_id>')
 def view_history(scan_id):
@@ -207,7 +257,8 @@ def view_history(scan_id):
                            report=report_text,
                            scan_meta=scan_meta,
                            history=history,
-                           viewing_history=scan_id)
+                           viewing_history=scan_id,
+                           hostname=get_hostname())
 
 @app.route('/api/results')
 def api_results():

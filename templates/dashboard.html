@@ -423,7 +423,7 @@
 
 <header>
     <h1>⬡ Network Vulnerability Scanner</h1>
-    <span>Raspberry Pi 4 — Local Network Audit</span>
+    <span>{{ hostname }} — Local Network Audit</span>
 </header>
 
 <!-- Confirm clear history overlay -->
@@ -583,6 +583,31 @@
             <p>No scan results found. Run your first scan to get started.</p>
             <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run First Scan</button>
             <div id="scan-status"></div>
+        </div>
+
+        <!-- System Resources -->
+        <p class="section-title">System Resources</p>
+        <div class="resource-grid" id="resource-grid">
+            <div class="summary-tile">
+                <div class="tile-value" id="res-cpu">—</div>
+                <div class="tile-label">CPU Usage</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-ram">—</div>
+                <div class="tile-label">RAM Used</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value small" id="res-avail">—</div>
+                <div class="tile-label">RAM Available</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-temp">—</div>
+                <div class="tile-label">CPU Temp</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value small" id="res-ollama">—</div>
+                <div class="tile-label">Ollama Model</div>
+            </div>
         </div>
     {% endif %}
 
