@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Vulnerability Scanner</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #111;
+            border-bottom: 2px solid #00ff88;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 { color: #00ff88; font-size: 1.4rem; letter-spacing: 2px; text-transform: uppercase; }
+        header span { color: #666; font-size: 0.85rem; }
+
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+
+        /* Progress bar */
+        .progress-overlay {
+            display: none;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 30px 40px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .progress-overlay.active { display: block; }
+
+        .progress-title {
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #00ff88;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar-track {
+            background: #1a1a1a;
+            border-radius: 4px;
+            height: 6px;
+            width: 100%;
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: #00ff88;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .progress-message { font-size: 0.8rem; color: #555; }
+
+        .progress-stages {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+        }
+
+        .progress-stage {
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        .progress-stage.active { color: #00ff88; }
+        .progress-stage.done   { color: #446644; }
+
+        /* Score Card */
+        .score-card {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+        }
+
+        .score-card.critical::before { background: #ff4444; }
+        .score-card.poor::before     { background: #ff8800; }
+        .score-card.moderate::before { background: #ffcc00; }
+        .score-card.good::before     { background: #00ff88; }
+
+        .score-number { font-size: 5rem; font-weight: bold; line-height: 1; margin-bottom: 10px; }
+        .score-card.critical .score-number { color: #ff4444; }
+        .score-card.poor .score-number     { color: #ff8800; }
+        .score-card.moderate .score-number { color: #ffcc00; }
+        .score-card.good .score-number     { color: #00ff88; }
+
+        .score-label { font-size: 1.2rem; letter-spacing: 4px; text-transform: uppercase; color: #888; margin-bottom: 20px; }
+        .score-sublabel { color: #555; font-size: 0.85rem; }
+
+        /* Buttons */
+        .scan-btn {
+            display: inline-block;
+            padding: 12px 35px;
+            background: transparent;
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .scan-btn:hover { background: #00ff88; color: #0a0a0a; }
+        .scan-btn:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+
+        .stop-btn {
+            display: none;
+            padding: 12px 35px;
+            background: transparent;
+            border: 2px solid #ff4444;
+            color: #ff4444;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            margin-top: 16px;
+        }
+
+        .stop-btn:hover { background: #ff4444; color: #0a0a0a; }
+        .stop-btn:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+
+        .danger-btn {
+            display: inline-block;
+            padding: 8px 20px;
+            background: transparent;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .danger-btn:hover { background: #ff4444; color: #0a0a0a; }
+
+        /* Summary tiles */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .summary-tile {
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 6px;
+            padding: 14px 10px;
+            text-align: center;
+        }
+
+        .tile-value { font-size: 1.6rem; font-weight: bold; color: #00ff88; }
+        .tile-value.red    { color: #ff4444; }
+        .tile-value.orange { color: #ff8800; }
+        .tile-value.small  { font-size: 1rem; }
+        .tile-label { font-size: 0.7rem; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+        /* CVE badge on findings */
+        .cve-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #ff880022;
+            color: #ff8800;
+            letter-spacing: 1px;
+            margin-left: 6px;
+        }
+
+        /* Findings */
+        .section-title { font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: #555; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid #1a1a1a; }
+        .findings-grid { display: grid; gap: 12px; margin-bottom: 30px; }
+
+        .finding-card {
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-left: 4px solid;
+            border-radius: 4px;
+            padding: 18px 20px;
+        }
+
+        .finding-card.critical { border-left-color: #ff4444; }
+        .finding-card.high     { border-left-color: #ff8800; }
+        .finding-card.medium   { border-left-color: #ffcc00; }
+        .finding-card.low      { border-left-color: #00ff88; }
+
+        .finding-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .finding-name { font-weight: bold; color: #e0e0e0; font-size: 0.95rem; }
+
+        .severity-badge { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; padding: 3px 10px; border-radius: 3px; font-weight: bold; }
+        .severity-badge.critical { background: #ff444422; color: #ff4444; }
+        .severity-badge.high     { background: #ff880022; color: #ff8800; }
+        .severity-badge.medium   { background: #ffcc0022; color: #ffcc00; }
+        .severity-badge.low      { background: #00ff8822; color: #00ff88; }
+
+        .finding-host  { font-size: 0.8rem;  color: #555; margin-bottom: 8px; }
+        .finding-desc  { font-size: 0.85rem; color: #888; line-height: 1.5; margin-bottom: 8px; }
+        .finding-fix   { font-size: 0.8rem;  color: #00ff8888; }
+        .finding-fix span { color: #00ff88; font-weight: bold; }
+
+        /* AI Report */
+        .report-box {
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 4px;
+            padding: 30px;
+            margin-bottom: 30px;
+            line-height: 1.8;
+            font-size: 0.9rem;
+            color: #aaa;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+
+        /* History */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .history-header-title { font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: #555; }
+
+        .history-row {
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 4px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            margin-bottom: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .history-row:hover  { border-color: #00ff88; }
+        .history-row.active { border-color: #00ff88; }
+
+        .history-timestamp { font-size: 0.85rem; color: #888; }
+        .history-findings  { font-size: 0.8rem;  color: #555; }
+        .history-duration  { font-size: 0.8rem;  color: #446644; }
+
+        .history-score { font-size: 0.85rem; font-weight: bold; }
+        .history-score.critical { color: #ff4444; }
+        .history-score.poor     { color: #ff8800; }
+        .history-score.moderate { color: #ffcc00; }
+        .history-score.good     { color: #00ff88; }
+
+        /* No data */
+        .no-data { text-align: center; padding: 60px; color: #444; }
+        .no-data p { margin-bottom: 20px; font-size: 0.9rem; }
+
+        #scan-status { margin-top: 10px; font-size: 0.8rem; color: #666; min-height: 20px; }
+
+        .history-banner {
+            background: #1a1a00;
+            border: 1px solid #ffcc00;
+            border-radius: 4px;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            font-size: 0.8rem;
+            color: #ffcc00;
+        }
+
+        .history-banner a { color: #00ff88; }
+
+        /* Confirm overlay */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .confirm-overlay.active { display: flex; }
+
+        .confirm-box {
+            background: #111;
+            border: 1px solid #ff4444;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .confirm-box p { color: #888; margin-bottom: 24px; font-size: 0.9rem; line-height: 1.6; }
+        .confirm-box h3 { color: #ff4444; margin-bottom: 12px; letter-spacing: 2px; }
+
+        /* CVE mode indicator */
+        .cve-mode {
+            font-size: 0.7rem;
+            color: #446644;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        .cve-mode.online  { color: #00ff88; }
+        .cve-mode.offline { color: #ff8800; }
+
+        /* System resources tile row */
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .tile-value.warn { color: #ffcc00; }
+        .tile-value.crit { color: #ff4444; }
+        .tile-value.ok   { color: #00ff88; }
+
+        /* ── Responsive breakpoints ─────────────────────────────── */
+
+        /* Tablet */
+        @media (max-width: 900px) {
+            .container { margin: 24px auto; padding: 0 16px; }
+            header { padding: 16px 20px; }
+            .summary-grid { grid-template-columns: repeat(3, 1fr); }
+            .resource-grid { grid-template-columns: repeat(3, 1fr); }
+            .score-number { font-size: 3.6rem; }
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+                padding: 14px 16px;
+            }
+            header h1 { font-size: 1.1rem; letter-spacing: 1px; }
+            header span { font-size: 0.75rem; }
+
+            .container { margin: 16px auto; padding: 0 12px; }
+
+            .progress-overlay { padding: 20px 18px; }
+            .progress-stages {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 8px 16px;
+            }
+            .progress-stage { font-size: 0.65rem; }
+
+            .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .resource-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .summary-tile { padding: 12px 8px; }
+            .tile-value { font-size: 1.3rem; }
+
+            .score-card { padding: 26px 18px; }
+            .score-number { font-size: 2.8rem; }
+            .score-label { font-size: 1rem; letter-spacing: 2px; }
+
+            .scan-btn, .stop-btn { width: 100%; text-align: center; padding: 12px 16px; }
+
+            .finding-header {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .finding-card { padding: 14px 16px; }
+
+            .report-box { padding: 18px; font-size: 0.85rem; }
+
+            .history-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+                padding: 12px 14px;
+            }
+            .history-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+            .confirm-box { padding: 28px 22px; max-width: 320px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>⬡ Network Vulnerability Scanner</h1>
+    <span>Raspberry Pi 4 — Local Network Audit</span>
+</header>
+
+<!-- Confirm clear history overlay -->
+<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+        <h3>CLEAR HISTORY</h3>
+        <p>This will permanently delete all saved scan history. This cannot be undone.</p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+            <button class="danger-btn" onclick="confirmClearHistory()">Yes, Clear All</button>
+            <button class="scan-btn" style="padding:8px 20px; font-size:0.75rem;" onclick="cancelClearHistory()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Scan Progress -->
+    <div class="progress-overlay" id="progress-overlay">
+        <div class="progress-title">⬡ Scan In Progress</div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-message" id="progress-message">Starting...</div>
+        <div class="progress-stages">
+            <span class="progress-stage" id="stage-scanning">① Scanning</span>
+            <span class="progress-stage" id="stage-analysing">② Analysing</span>
+            <span class="progress-stage" id="stage-cve">③ CVE Lookup</span>
+            <span class="progress-stage" id="stage-reporting">④ AI Report</span>
+            <span class="progress-stage" id="stage-saving">⑤ Saving</span>
+            <span class="progress-stage" id="stage-complete">⑥ Complete</span>
+        </div>
+        <button class="stop-btn" id="stop-btn" onclick="stopScan()">■ Stop Scan</button>
+    </div>
+
+    {% if viewing_history %}
+    <div class="history-banner">
+        ⚠ Viewing historical scan from {{ viewing_history }} —
+        <a href="/">Back to latest</a>
+    </div>
+    {% endif %}
+
+    {% if analysis %}
+        {% set rating_lower = analysis.rating | lower %}
+
+        <!-- Network Summary Tiles -->
+        {% if scan_meta %}
+        <div class="summary-grid">
+            <div class="summary-tile">
+                <div class="tile-value">{{ scan_meta.total_hosts }}</div>
+                <div class="tile-label">Hosts Found</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value">{{ scan_meta.total_ports }}</div>
+                <div class="tile-label">Open Ports</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value">{{ analysis.findings | length }}</div>
+                <div class="tile-label">Findings</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value red">{{ analysis.severity_counts.critical }}</div>
+                <div class="tile-label">Critical</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value orange">{{ analysis.cve_count if analysis.cve_count else '0' }}</div>
+                <div class="tile-label">CVEs Found</div>
+                {% if analysis.cve_mode %}
+                <div class="cve-mode {{ analysis.cve_mode }}">{{ analysis.cve_mode }}</div>
+                {% endif %}
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value small">{{ analysis.duration if analysis.duration else '—' }}</div>
+                <div class="tile-label">Duration</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Score Card -->
+        <div class="score-card {{ rating_lower }}">
+            <div class="score-number">{{ analysis.score }}</div>
+            <div class="score-label">{{ analysis.rating }}</div>
+            <div class="score-sublabel">
+                {{ analysis.findings | length }} finding(s) detected
+                {% if analysis.timestamp %} — {{ analysis.timestamp }}{% endif %}
+            </div>
+            <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:25px;">
+                {% if not viewing_history %}
+                <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run New Scan</button>
+                <a href="/download-pdf" class="scan-btn" style="text-decoration:none;">↓ Download PDF</a>
+                {% else %}
+                <a href="/download-pdf/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ Download PDF</a>
+                <a href="/" class="scan-btn" style="text-decoration:none;">← Latest Scan</a>
+                {% endif %}
+            </div>
+            <div id="scan-status"></div>
+        </div>
+
+        <!-- System Resources -->
+        <p class="section-title">System Resources</p>
+        <div class="resource-grid" id="resource-grid">
+            <div class="summary-tile">
+                <div class="tile-value" id="res-cpu">—</div>
+                <div class="tile-label">CPU Usage</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-ram">—</div>
+                <div class="tile-label">RAM Used</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value small" id="res-avail">—</div>
+                <div class="tile-label">RAM Available</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-temp">—</div>
+                <div class="tile-label">CPU Temp</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value small" id="res-ollama">—</div>
+                <div class="tile-label">Ollama Model</div>
+            </div>
+        </div>
+
+        <!-- Findings -->
+        {% if analysis.findings %}
+        <p class="section-title">Findings</p>
+        <div class="findings-grid">
+            {% for f in analysis.findings %}
+            <div class="finding-card {{ f.severity }}">
+                <div class="finding-header">
+                    <span class="finding-name">
+                        {{ f.name }}
+                        {% if f.cve_id is defined %}
+                        <span class="cve-badge">CVE</span>
+                        {% endif %}
+                    </span>
+                    <span class="severity-badge {{ f.severity }}">{{ f.severity }}</span>
+                </div>
+                <div class="finding-host">
+                    {{ f.host }}
+                    {% if f.hostname %}({{ f.hostname }}){% endif %}
+                    {% if f.vendor and f.vendor != 'Unknown' %} — {{ f.vendor }}{% endif %}
+                    — Port {{ f.port }}
+                </div>
+                <div class="finding-desc">{{ f.description }}</div>
+                <div class="finding-fix"><span>Fix:</span> {{ f.remediation }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- AI Report -->
+        <p class="section-title">AI Generated Report</p>
+        <div class="report-box" id="report-box">{% if report %}{{ report }}{% else %}<span style="color:#333; font-style:italic;">Run a scan to generate an AI report.</span>{% endif %}</div>
+
+    {% else %}
+        <div class="no-data">
+            <p>No scan results found. Run your first scan to get started.</p>
+            <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run First Scan</button>
+            <div id="scan-status"></div>
+        </div>
+    {% endif %}
+
+    <!-- Scan History -->
+    {% if history %}
+    <div class="history-header">
+        <span class="history-header-title">Scan History</span>
+        <button class="danger-btn" onclick="showClearHistory()">✕ Clear History</button>
+    </div>
+    <div style="margin-bottom:30px;">
+        {% for h in history %}
+        <a href="/history/{{ h.id }}" class="history-row {% if viewing_history == h.id %}active{% endif %}">
+            <span class="history-timestamp">{{ h.timestamp }}</span>
+            <span class="history-findings">{{ h.findings }} finding(s)</span>
+            <span class="history-duration">{{ h.duration }}</span>
+            <span class="history-score {{ h.rating | lower }}">
+                {{ h.score }}/100 — {{ h.rating }}
+            </span>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    let pollInterval = null;
+
+    const STAGE_ORDER = ['scanning', 'analysing', 'cve', 'reporting', 'saving', 'complete'];
+
+    function updateStages(currentStage) {
+        const idx = STAGE_ORDER.indexOf(currentStage);
+        STAGE_ORDER.forEach((s, i) => {
+            const el = document.getElementById(`stage-${s}`);
+            if (!el) return;
+            el.className = 'progress-stage';
+            if (i < idx)  el.classList.add('done');
+            if (i === idx) el.classList.add('active');
+        });
+    }
+
+    function pollStatus() {
+        fetch('/api/status')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.running && data.stage !== 'complete') return;
+
+                const overlay = document.getElementById('progress-overlay');
+                const fill    = document.getElementById('progress-fill');
+                const msg     = document.getElementById('progress-message');
+                const stopBtn = document.getElementById('stop-btn');
+
+                overlay.classList.add('active');
+                fill.style.width = data.percent + '%';
+                msg.textContent  = data.message;
+                updateStages(data.stage);
+
+                if (stopBtn) stopBtn.style.display = 'inline-block';
+
+                if (data.stage === 'complete') {
+                    msg.textContent = 'Scan complete — reloading...';
+                    if (stopBtn) stopBtn.style.display = 'none';
+                    setTimeout(() => { window.location.reload(); }, 2000);
+                    stopPolling();
+                }
+            })
+            .catch(() => stopPolling());
+    }
+
+    function startPolling() {
+        if (pollInterval) return;
+        pollInterval = setInterval(pollStatus, 3000);
+        pollStatus();
+    }
+
+    function stopPolling() {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+    }
+
+    function triggerScan() {
+        const btn    = document.getElementById('scan-btn');
+        const status = document.getElementById('scan-status');
+
+        btn.disabled    = true;
+        btn.textContent = '⏳ Starting...';
+        if (status) status.textContent = '';
+
+        fetch('/scan', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'started') {
+                    startPolling();
+                } else {
+                    if (status) status.textContent = 'Error: ' + data.message;
+                    btn.disabled    = false;
+                    btn.textContent = '▶ Run New Scan';
+                }
+            })
+            .catch(() => {
+                if (status) status.textContent = 'Could not contact scanner.';
+                btn.disabled    = false;
+                btn.textContent = '▶ Run New Scan';
+            });
+    }
+
+    function stopScan() {
+        const stopBtn = document.getElementById('stop-btn');
+        if (stopBtn) {
+            stopBtn.disabled    = true;
+            stopBtn.textContent = 'Stopping...';
+        }
+
+        fetch('/stop-scan', { method: 'POST' })
+            .then(r => r.json())
+            .then(() => {
+                stopPolling();
+                const overlay = document.getElementById('progress-overlay');
+                if (overlay) overlay.classList.remove('active');
+                if (stopBtn) {
+                    stopBtn.style.display = 'none';
+                    stopBtn.disabled    = false;
+                    stopBtn.textContent = '■ Stop Scan';
+                }
+                const scanBtn = document.getElementById('scan-btn');
+                if (scanBtn) {
+                    scanBtn.disabled    = false;
+                    scanBtn.textContent = '▶ Run New Scan';
+                }
+            });
+    }
+
+    function showClearHistory() {
+        document.getElementById('confirm-overlay').classList.add('active');
+    }
+
+    function cancelClearHistory() {
+        document.getElementById('confirm-overlay').classList.remove('active');
+    }
+
+    function confirmClearHistory() {
+        fetch('/clear-history', { method: 'POST' })
+            .then(r => r.json())
+            .then(() => {
+                 window.location.reload();
+             })
+             .catch(() => {
+                 window.location.reload();
+             });
+    }
+
+    // ── System resource monitoring ──────────────────────────
+    function classifyValue(percent, warnAt, critAt) {
+        if (percent === null || percent === undefined) return '';
+        if (percent >= critAt) return 'crit';
+        if (percent >= warnAt) return 'warn';
+        return 'ok';
+    }
+
+    function pollSystemResources() {
+        fetch('/api/system')
+            .then(r => r.json())
+            .then(data => {
+                const cpuEl    = document.getElementById('res-cpu');
+                const ramEl    = document.getElementById('res-ram');
+                const availEl  = document.getElementById('res-avail');
+                const tempEl   = document.getElementById('res-temp');
+                const ollamaEl = document.getElementById('res-ollama');
+
+                if (cpuEl) {
+                    if (data.cpu_percent === null || data.cpu_percent === undefined) {
+                        cpuEl.textContent = '…';
+                        cpuEl.className = 'tile-value';
+                    } else {
+                        cpuEl.textContent = data.cpu_percent + '%';
+                        cpuEl.className = 'tile-value ' + classifyValue(data.cpu_percent, 60, 85);
+                    }
+                }
+
+                if (data.memory) {
+                    if (ramEl) {
+                        ramEl.textContent = data.memory.used_gb + 'GB';
+                        ramEl.className = 'tile-value ' + classifyValue(data.memory.percent_used, 60, 85);
+                    }
+                    if (availEl) {
+                        availEl.textContent = data.memory.available_gb + 'GB free';
+                        availEl.className = 'tile-value small';
+                    }
+                }
+
+                if (tempEl) {
+                    if (data.cpu_temp === null || data.cpu_temp === undefined) {
+                        tempEl.textContent = 'N/A';
+                        tempEl.className = 'tile-value';
+                    } else {
+                        tempEl.textContent = data.cpu_temp + '°C';
+                        tempEl.className = 'tile-value ' + classifyValue(data.cpu_temp, 65, 75);
+                    }
+                }
+
+                if (ollamaEl) {
+                    if (data.ollama && data.ollama.loaded) {
+                        ollamaEl.textContent = `${data.ollama.name} (${data.ollama.size_gb}GB)`;
+                        ollamaEl.className = 'tile-value small ok';
+                    } else {
+                        ollamaEl.textContent = 'Not loaded';
+                        ollamaEl.className = 'tile-value small crit';
+                    }
+                }
+            })
+            .catch(() => { /* silently skip a failed poll, try again next interval */ });
+    }
+
+    pollSystemResources();
+    setInterval(pollSystemResources, 4000);
+
+    // On page load — only poll if a scan is actively mid-progress
+    fetch('/api/status')
+        .then(r => r.json())
+        .then(data => {
+            if (data.running && data.stage !== 'complete') {
+                startPolling();
+            }
+        });
+</script>
+
+</body>
+</html>
