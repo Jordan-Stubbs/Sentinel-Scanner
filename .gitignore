@@ -1,21 +1,21 @@
-   # Python
-   venv/
-   __pycache__/
-   *.pyc
+# Python
+venv/
+__pycache__/
+*.pyc
 
-   # Runtime-generated scan data — contains real network info (IPs,
-   # device names, vulnerability findings). Never commit this.
-   scan_results.json
-   analysis_results.json
-   scan_status.json
-   llm_report.txt
-   history/
-   security_report_*.pdf
+# Runtime-generated scan data — contains real network info (IPs,
+# device names, vulnerability findings). Never commit this.
+scan_results.json
+analysis_results.json
+scan_status.json
+llm_report.txt
+history/
+security_report*.pdf
 
-   # The offline CVE cache is large and easily regenerated with
-   # build_cve_cache.py — no need to version it.
-   cve_cache.json
+# The offline CVE cache is large and easily regenerated with
+# build_cve_cache.py — no need to version it.
+cve_cache.json
 
-   # OS/editor cruft
-   .DS_Store
-   *.swp
+# OS/editor cruft
+.DS_Store
+*.swp
