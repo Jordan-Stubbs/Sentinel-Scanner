@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Comparison</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #111;
+            border-bottom: 2px solid #00ff88;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 { color: #00ff88; font-size: 1.4rem; letter-spacing: 2px; text-transform: uppercase; }
+        header span { color: #666; font-size: 0.85rem; }
+
+        .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: #00ff88;
+            text-decoration: none;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .compare-header {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 30px 40px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .compare-timestamps {
+            font-size: 0.8rem;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .compare-timestamps span { color: #888; }
+
+        .score-comparison {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+        }
+
+        .score-block { text-align: center; }
+        .score-block .value { font-size: 2.5rem; font-weight: bold; color: #888; }
+        .score-block .label { font-size: 0.7rem; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+        .score-arrow { font-size: 1.5rem; color: #555; }
+
+        .delta-badge {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-top: 16px;
+        }
+        .delta-badge.improved { background: #00ff8822; color: #00ff88; }
+        .delta-badge.worsened { background: #ff444422; color: #ff4444; }
+        .delta-badge.unchanged { background: #66666622; color: #888; }
+
+        .section-title { font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: #555; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid #1a1a1a; }
+
+        .diff-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        @media (max-width: 700px) { .diff-grid { grid-template-columns: 1fr; } }
+
+        .diff-card {
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-left: 4px solid;
+            border-radius: 4px;
+            padding: 14px 18px;
+            margin-bottom: 10px;
+        }
+        .diff-card.added   { border-left-color: #00ff88; }
+        .diff-card.removed { border-left-color: #ff4444; }
+
+        .diff-card .item-name { font-weight: bold; font-size: 0.9rem; color: #e0e0e0; }
+        .diff-card .item-meta { font-size: 0.75rem; color: #666; margin-top: 4px; }
+
+        .severity-tag {
+            display: inline-block;
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+        .severity-tag.critical { background: #ff444422; color: #ff4444; }
+        .severity-tag.high     { background: #ff880022; color: #ff8800; }
+        .severity-tag.medium   { background: #ffcc0022; color: #ffcc00; }
+        .severity-tag.low      { background: #00ff8822; color: #00ff88; }
+
+        .empty-note { color: #444; font-size: 0.85rem; font-style: italic; padding: 10px 0; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>⬡ Network Vulnerability Scanner</h1>
+    <span>{{ hostname }} — Scan Comparison</span>
+</header>
+
+<div class="container">
+    <a href="/" class="back-link">← Back to Dashboard</a>
+
+    <div class="compare-header">
+        <div class="compare-timestamps">
+            Comparing <span>{{ diff.timestamp_a }}</span> → <span>{{ diff.timestamp_b }}</span>
+        </div>
+
+        <div class="score-comparison">
+            <div class="score-block">
+                <div class="value">{{ diff.score_a }}</div>
+                <div class="label">{{ diff.rating_a }}</div>
+            </div>
+            <div class="score-arrow">→</div>
+            <div class="score-block">
+                <div class="value">{{ diff.score_b }}</div>
+                <div class="label">{{ diff.rating_b }}</div>
+            </div>
+        </div>
+
+        {% if diff.score_delta > 0 %}
+        <div class="delta-badge improved">▲ Improved by {{ diff.score_delta }}</div>
+        {% elif diff.score_delta < 0 %}
+        <div class="delta-badge worsened">▼ Worsened by {{ diff.score_delta | abs }}</div>
+        {% else %}
+        <div class="delta-badge unchanged">— No change</div>
+        {% endif %}
+    </div>
+
+    <p class="section-title">Hosts</p>
+    <div class="diff-grid">
+        <div>
+            {% if diff.hosts_added %}
+                {% for h in diff.hosts_added %}
+                <div class="diff-card added">
+                    <div class="item-name">+ {{ h.ip }}</div>
+                    <div class="item-meta">{{ h.hostname }} — newly appeared</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-note">No new hosts appeared.</p>
+            {% endif %}
+        </div>
+        <div>
+            {% if diff.hosts_removed %}
+                {% for h in diff.hosts_removed %}
+                <div class="diff-card removed">
+                    <div class="item-name">− {{ h.ip }}</div>
+                    <div class="item-meta">{{ h.hostname }} — no longer seen</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-note">No hosts disappeared.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <p class="section-title">Findings</p>
+    <div class="diff-grid">
+        <div>
+            {% if diff.findings_new %}
+                {% for f in diff.findings_new %}
+                <div class="diff-card removed">
+                    <div class="item-name">
+                        + {{ f.name if f.name else f.cve_id }}
+                        <span class="severity-tag {{ f.severity }}">{{ f.severity }}</span>
+                    </div>
+                    <div class="item-meta">{{ f.host }} — Port {{ f.port }} — new finding</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-note">No new findings.</p>
+            {% endif %}
+        </div>
+        <div>
+            {% if diff.findings_resolved %}
+                {% for f in diff.findings_resolved %}
+                <div class="diff-card added">
+                    <div class="item-name">
+                        ✓ {{ f.name if f.name else f.cve_id }}
+                        <span class="severity-tag {{ f.severity }}">{{ f.severity }}</span>
+                    </div>
+                    <div class="item-meta">{{ f.host }} — Port {{ f.port }} — resolved</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-note">No findings resolved.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

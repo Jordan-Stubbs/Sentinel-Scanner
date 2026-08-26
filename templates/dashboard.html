@@ -264,6 +264,54 @@
 
         .history-header-title { font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: #555; }
 
+        .compare-controls {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 4px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .compare-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .compare-label {
+            font-size: 0.65rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #555;
+        }
+
+        .compare-select {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .compare-arrow { color: #555; font-size: 0.9rem; padding-bottom: 8px; }
+
+        .trend-container {
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
         .history-row {
             background: #111;
             border: 1px solid #1e1e1e;
@@ -613,10 +661,39 @@
 
     <!-- Scan History -->
     {% if history %}
+    {% if history | length >= 2 %}
+    <p class="section-title">Score Trend</p>
+    <div class="trend-container">
+        <div id="score-trend-chart"></div>
+    </div>
+
+    <div class="compare-controls">
+        <div class="compare-group">
+            <label class="compare-label">Earlier Scan</label>
+            <select id="compare-from" class="compare-select">
+                {% for h in history %}
+                <option value="{{ h.id }}" {% if loop.index == 2 %}selected{% endif %}>{{ h.timestamp }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <span class="compare-arrow">→</span>
+        <div class="compare-group">
+            <label class="compare-label">Later Scan</label>
+            <select id="compare-to" class="compare-select">
+                {% for h in history %}
+                <option value="{{ h.id }}" {% if loop.first %}selected{% endif %}>{{ h.timestamp }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="scan-btn" style="padding:8px 20px; font-size:0.75rem;" onclick="compareScans()">Compare</button>
+    </div>
+    {% endif %}
+
     <div class="history-header">
         <span class="history-header-title">Scan History</span>
         <button class="danger-btn" onclick="showClearHistory()">✕ Clear History</button>
     </div>
+
     <div style="margin-bottom:30px;">
         {% for h in history %}
         <a href="/history/{{ h.id }}" class="history-row {% if viewing_history == h.id %}active{% endif %}">
@@ -760,6 +837,70 @@
                  window.location.reload();
              });
     }
+
+    function compareScans() {
+        const fromEl = document.getElementById('compare-from');
+        const toEl   = document.getElementById('compare-to');
+        if (!fromEl || !toEl) return;
+
+        const fromId = fromEl.value;
+        const toId   = toEl.value;
+
+        if (fromId === toId) {
+            alert('Choose two different scans to compare.');
+            return;
+        }
+
+        window.location.href = `/diff/${fromId}/${toId}`;
+    }
+
+    // ── Score trend chart (hand-rolled SVG, no chart library) ─
+    function renderTrendChart(data) {
+        const container = document.getElementById('score-trend-chart');
+        if (!container || !data || data.length < 2) return;
+
+        const width  = container.clientWidth || 600;
+        const height = 180;
+        const padding = { top: 10, right: 10, bottom: 24, left: 34 };
+        const plotWidth  = width - padding.left - padding.right;
+        const plotHeight = height - padding.top - padding.bottom;
+
+        const n = data.length;
+        const stepX = plotWidth / (n - 1);
+
+        const xFor = (i) => padding.left + i * stepX;
+        const yFor = (score) => padding.top + plotHeight - (score / 100) * plotHeight;
+
+        let gridLines = '';
+        [0, 25, 50, 75, 100].forEach(v => {
+            const y = yFor(v);
+            gridLines += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="#1a1a1a" stroke-width="1" />`;
+            gridLines += `<text x="${padding.left - 8}" y="${y + 4}" fill="#555" font-size="10" text-anchor="end" font-family="'Courier New', monospace">${v}</text>`;
+        });
+
+        const points = data.map((d, i) => `${xFor(i)},${yFor(d.score)}`).join(' ');
+        const dots = data.map((d, i) =>
+            `<circle cx="${xFor(i)}" cy="${yFor(d.score)}" r="3.5" fill="#00ff88">` +
+            `<title>${d.timestamp} — ${d.score}/100 (${d.findings} finding(s))</title></circle>`
+        ).join('');
+
+        container.innerHTML = `
+            <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                ${gridLines}
+                <polyline points="${points}" fill="none" stroke="#00ff88" stroke-width="2" />
+                ${dots}
+            </svg>
+        `;
+    }
+
+    function loadTrendChart() {
+        fetch('/api/history-trend')
+            .then(r => r.json())
+            .then(data => renderTrendChart(data))
+            .catch(() => { /* chart is optional — fail silently */ });
+    }
+
+    loadTrendChart();
 
     // ── System resource monitoring ──────────────────────────
     function classifyValue(percent, warnAt, critAt) {

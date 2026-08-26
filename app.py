@@ -7,6 +7,7 @@ import socket
 import urllib.request
 import urllib.error
 import config
+from diff import compare_scans
 
 app = Flask(__name__)
 
@@ -259,6 +260,35 @@ def view_history(scan_id):
                            history=history,
                            viewing_history=scan_id,
                            hostname=get_hostname())
+
+@app.route('/diff/<id_a>/<id_b>')
+def view_diff(id_a, id_b):
+    dir_a = os.path.join(config.HISTORY_DIR, id_a)
+    dir_b = os.path.join(config.HISTORY_DIR, id_b)
+
+    if not os.path.isdir(dir_a) or not os.path.isdir(dir_b):
+        return "One or both selected scans could not be found in history.", 404
+
+    try:
+        result = compare_scans(dir_a, dir_b)
+    except Exception as e:
+        return f"Could not compare these scans: {e}", 500
+
+    return render_template('diff.html',
+                           diff=result,
+                           id_a=id_a,
+                           id_b=id_b,
+                           hostname=get_hostname())
+
+@app.route('/api/history-trend')
+def api_history_trend():
+    # get_history() returns newest-first (for the browsing list) —
+    # charting wants chronological order, oldest to newest.
+    entries = list(reversed(get_history()))
+    return jsonify([
+        {'timestamp': e['timestamp'], 'score': e['score'], 'findings': e['findings']}
+        for e in entries
+    ])
 
 @app.route('/api/results')
 def api_results():

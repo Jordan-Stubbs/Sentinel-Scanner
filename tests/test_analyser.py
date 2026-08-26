@@ -15,7 +15,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from analyser import analyse, calculate_score, get_rating, get_severity_counts
+from analyser import analyse, calculate_score, get_rating, get_severity_counts, RULES
 
 
 def make_host(ip, hostname, protocols):
@@ -126,6 +126,55 @@ class TestSeverityCounts(unittest.TestCase):
         ]
         counts = get_severity_counts(findings)
         self.assertEqual(counts, {'critical': 2, 'high': 1, 'medium': 0, 'low': 1})
+
+
+class TestAllRulesFireCorrectly(unittest.TestCase):
+    """
+    Data-driven coverage of every rule in analyser.RULES — loops over
+    the actual rule list rather than hardcoding 19 separate cases, so
+    this stays self-updating if rules are ever added, removed, or
+    changed. Confirms each rule fires on its own defined port/protocol
+    with the correct rule_id and severity, and nothing else.
+    """
+
+    def test_rule_count_is_19(self):
+        # Regression guard — catches an accidental rule deletion/addition
+        # going unnoticed. Update this number deliberately if the rule
+        # set genuinely changes size.
+        self.assertEqual(len(RULES), 19)
+
+    def test_no_duplicate_rule_ids(self):
+        ids = [rule['id'] for rule in RULES]
+        self.assertEqual(len(ids), len(set(ids)), "Duplicate rule IDs found in RULES")
+
+    def test_every_rule_fires_on_its_own_port(self):
+        for rule in RULES:
+            with self.subTest(rule_id=rule['id']):
+                port = rule['ports'][0]
+                host = make_host('1.1.1.1', 'test.local', {
+                    rule['protocol']: {port: {'service': 'test', 'version': ''}}
+                })
+                findings = analyse([host])
+
+                self.assertEqual(
+                    len(findings), 1,
+                    f"Rule {rule['id']} ({rule['name']}) did not fire exactly once "
+                    f"on port {port}/{rule['protocol']}"
+                )
+                self.assertEqual(findings[0]['rule_id'], rule['id'])
+                self.assertEqual(findings[0]['severity'], rule['severity'])
+                self.assertEqual(findings[0]['name'], rule['name'])
+
+    def test_every_rule_port_has_a_valid_severity(self):
+        valid_severities = {'critical', 'high', 'medium', 'low'}
+        for rule in RULES:
+            with self.subTest(rule_id=rule['id']):
+                self.assertIn(rule['severity'], valid_severities)
+
+    def test_every_rule_has_non_empty_remediation(self):
+        for rule in RULES:
+            with self.subTest(rule_id=rule['id']):
+                self.assertTrue(rule['remediation'].strip())
 
 
 if __name__ == '__main__':
