@@ -4,6 +4,9 @@ import subprocess
 import os
 import shutil
 import socket
+import csv
+import io
+from datetime import datetime
 import urllib.request
 import urllib.error
 import config
@@ -61,12 +64,13 @@ def get_history():
         analysis = load_json(os.path.join(path, 'analysis_results.json'))
         if analysis:
             entries.append({
-                'id':        name,
-                'timestamp': analysis.get('timestamp', name),
-                'score':     analysis.get('score'),
-                'rating':    analysis.get('rating'),
-                'findings':  len(analysis.get('findings', [])),
-                'duration':  analysis.get('duration', '—')
+                'id':              name,
+                'timestamp':       analysis.get('timestamp', name),
+                'score':           analysis.get('score'),
+                'rating':          analysis.get('rating'),
+                'findings':        len(analysis.get('findings', [])),
+                'duration':        analysis.get('duration', '—'),
+                'severity_counts': analysis.get('severity_counts', {}),
             })
     return entries
 
@@ -102,106 +106,11 @@ def read_cpu_percent():
     except Exception:
         return None
 
-def read_memory():
-    """Parse /proc/meminfo for RAM and swap stats, returned in GB."""
-    try:
-        meminfo = {}
-        with open('/proc/meminfo') as f:
-            for line in f:
-                key, value = line.split(':', 1)
-                meminfo[key.strip()] = int(value.strip().split()[0])  # kB
-
-        total_gb      = meminfo.get('MemTotal', 0) / (1024 * 1024)
-        available_gb  = meminfo.get('MemAvailable', 0) / (1024 * 1024)
-        used_gb       = total_gb - available_gb
-        swap_total_gb = meminfo.get('SwapTotal', 0) / (1024 * 1024)
-        swap_free_gb  = meminfo.get('SwapFree', 0) / (1024 * 1024)
-        swap_used_gb  = swap_total_gb - swap_free_gb
-
-        return {
-            'total_gb':      round(total_gb, 1),
-            'used_gb':       round(used_gb, 1),
-            'available_gb':  round(available_gb, 1),
-            'percent_used':  round((used_gb / total_gb) * 100, 1) if total_gb else 0,
-            'swap_total_gb': round(swap_total_gb, 1),
-            'swap_used_gb':  round(swap_used_gb, 1),
-        }
-    except Exception:
-        return None
-
-def read_cpu_temp():
-    """Read CPU temperature. Tries multiple methods since this can run
-    on Raspberry Pi hardware, generic Linux hardware, or inside a VM
-    (where no real sensor may be exposed at all — in that case this
-    correctly returns None rather than fabricating a number)."""
-
-    # Method 1: Raspberry Pi firmware tool
-    try:
-        result = subprocess.run(
-            ['vcgencmd', 'measure_temp'],
-            capture_output=True, text=True, timeout=2
-        )
-        output = result.stdout.strip()  # looks like: temp=48.7'C
-        if output.startswith('temp='):
-            temp_str = output.replace('temp=', '').replace("'C", '')
-            return round(float(temp_str), 1)
-    except Exception:
-        pass
-
-    # Method 2: standard Linux thermal zone interface (works on most
-    # real laptops/desktops; usually absent or non-functional in VMs
-    # since it depends on the hypervisor exposing real sensor data).
-    try:
-        base = '/sys/class/thermal'
-        if os.path.isdir(base):
-            zones = sorted(d for d in os.listdir(base) if d.startswith('thermal_zone'))
-            preferred_keywords = ('cpu', 'pkg', 'soc', 'core')
-
-            candidates = []
-            for zone in zones:
-                temp_path = os.path.join(base, zone, 'temp')
-                type_path = os.path.join(base, zone, 'type')
-                if not os.path.exists(temp_path):
-                    continue
-                zone_type = ''
-                if os.path.exists(type_path):
-                    with open(type_path) as f:
-                        zone_type = f.read().strip().lower()
-                candidates.append((zone_type, temp_path))
-
-            # Try zones whose type looks CPU-related first, then any zone
-            candidates.sort(key=lambda c: not any(k in c[0] for k in preferred_keywords))
-
-            for _, temp_path in candidates:
-                with open(temp_path) as f:
-                    millidegrees = int(f.read().strip())
-                celsius = millidegrees / 1000.0
-                # Sanity check — some VMs/sensors report bogus 0 or negative values
-                if 0 < celsius < 150:
-                    return round(celsius, 1)
-    except Exception:
-        pass
-
-    return None
-
-def read_ollama_status():
-    """Check whether Phi-3 Mini is currently resident in Ollama's RAM."""
-    try:
-        req = urllib.request.Request('http://localhost:11434/api/ps')
-        with urllib.request.urlopen(req, timeout=2) as response:
-            data   = json.loads(response.read().decode('utf-8'))
-            models = data.get('models', [])
-            if models:
-                m = models[0]
-                size_gb = m.get('size', 0) / (1024 ** 3)
-                return {
-                    'loaded':  True,
-                    'name':    m.get('name', 'unknown'),
-                    'size_gb': round(size_gb, 1)
-                }
-            return {'loaded': False}
-    except Exception:
-        return {'loaded': False}
+# read_memory, read_cpu_temp, and read_ollama_status are shared with
+# main.py (which uses them for point-in-time snapshots saved into
+# scan history) — defined once in resource_monitor.py rather than
+# duplicated here.
+from resource_monitor import read_memory, read_cpu_temp, read_ollama_status
 
 @app.route('/api/system')
 def api_system():
@@ -286,7 +195,12 @@ def api_history_trend():
     # charting wants chronological order, oldest to newest.
     entries = list(reversed(get_history()))
     return jsonify([
-        {'timestamp': e['timestamp'], 'score': e['score'], 'findings': e['findings']}
+        {
+            'timestamp': e['timestamp'],
+            'score': e['score'],
+            'findings': e['findings'],
+            'severity_counts': e['severity_counts'],
+        }
         for e in entries
     ])
 
@@ -368,6 +282,79 @@ def trigger_scan():
         return jsonify({'status': 'started'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
+
+def build_findings_csv(analysis):
+    """Flatten a scan's findings into CSV rows for spreadsheet use."""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        'Host', 'Hostname', 'Vendor', 'Port', 'ID', 'Name',
+        'Severity', 'CVSS Score', 'Description', 'Remediation', 'Source'
+    ])
+    for f in analysis.get('findings', []):
+        is_cve = bool(f.get('cve_id'))
+        writer.writerow([
+            f.get('host', ''),
+            f.get('hostname', ''),
+            f.get('vendor', ''),
+            f.get('port', ''),
+            f.get('cve_id') or f.get('rule_id', ''),
+            f.get('name', ''),
+            f.get('severity', ''),
+            f.get('cvss_score', '') if is_cve else '',
+            f.get('description', ''),
+            f.get('remediation', ''),
+            'CVE' if is_cve else 'Rule',
+        ])
+    return output.getvalue()
+
+@app.route('/export/csv')
+def export_csv():
+    analysis = load_json(config.ANALYSIS_RESULTS_PATH)
+    if not analysis:
+        return "No scan data available.", 404
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    return Response(
+        build_findings_csv(analysis),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=findings_{timestamp}.csv'}
+    )
+
+@app.route('/export/csv/history/<scan_id>')
+def export_csv_history(scan_id):
+    base = os.path.join(config.HISTORY_DIR, scan_id)
+    analysis = load_json(os.path.join(base, 'analysis_results.json'))
+    if not analysis:
+        return "Scan not found.", 404
+    return Response(
+        build_findings_csv(analysis),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=findings_{scan_id}.csv'}
+    )
+
+@app.route('/export/json')
+def export_json():
+    analysis = load_json(config.ANALYSIS_RESULTS_PATH)
+    if not analysis:
+        return "No scan data available.", 404
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    return Response(
+        json.dumps(analysis, indent=2),
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment; filename=scan_{timestamp}.json'}
+    )
+
+@app.route('/export/json/history/<scan_id>')
+def export_json_history(scan_id):
+    base = os.path.join(config.HISTORY_DIR, scan_id)
+    analysis = load_json(os.path.join(base, 'analysis_results.json'))
+    if not analysis:
+        return "Scan not found.", 404
+    return Response(
+        json.dumps(analysis, indent=2),
+        mimetype='application/json',
+        headers={'Content-Disposition': f'attachment; filename=scan_{scan_id}.json'}
+    )
 
 @app.route('/download-pdf')
 def download_pdf():

@@ -9,6 +9,7 @@ from analyser import analyse, calculate_score, get_rating, get_severity_counts
 from llm_reporter import load_analysis, build_report_data, build_prompt, query_ollama, build_final_report, save_report
 from cve_lookup import run_cve_lookup
 import config
+import resource_monitor
 
 def write_status(stage, message, percent, running=True):
     with open(config.SCAN_STATUS_PATH, 'w') as f:
@@ -125,6 +126,12 @@ if __name__ == "__main__":
     scan_start = time.time()
     write_status('starting', 'Initialising scanner...', 5)
 
+    # Automatically log resource usage at key pipeline stages, so this
+    # data is available later for review instead of only being visible
+    # live in the dashboard at the moment it happens.
+    resource_snapshots = {}
+    resource_snapshots['start'] = resource_monitor.take_snapshot()
+
     # Stage 1 — Scan
     run_scanner()
     write_status('scanning', 'Network scan complete.', 30)
@@ -172,7 +179,9 @@ if __name__ == "__main__":
         print("[+] No vulnerabilities found. Skipping AI report.")
         write_status('reporting', 'No vulnerabilities found.', 90)
     else:
+        resource_snapshots['before_llm'] = resource_monitor.take_snapshot()
         run_llm_reporter()
+        resource_snapshots['after_llm'] = resource_monitor.take_snapshot()
         write_status('reporting', 'AI report complete.', 90)
 
     # Calculate duration
@@ -185,6 +194,10 @@ if __name__ == "__main__":
     with open(config.ANALYSIS_RESULTS_PATH) as f:
         analysis_data = json.load(f)
     analysis_data['duration'] = duration_str
+
+    resource_snapshots['end'] = resource_monitor.take_snapshot()
+    analysis_data['resource_snapshots'] = resource_snapshots
+
     with open(config.ANALYSIS_RESULTS_PATH, 'w') as f:
         json.dump(analysis_data, f, indent=2)
 

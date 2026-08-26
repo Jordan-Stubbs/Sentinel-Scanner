@@ -211,6 +211,42 @@
         .section-title { font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; color: #555; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid #1a1a1a; }
         .findings-grid { display: grid; gap: 12px; margin-bottom: 30px; }
 
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: #00ff88; color: #00ff88; }
+        .filter-btn.active { background: #00ff8822; border-color: #00ff88; color: #00ff88; }
+
+        .host-search-input {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 4px;
+            flex: 1;
+            min-width: 180px;
+        }
+
         .finding-card {
             background: #111;
             border: 1px solid #1e1e1e;
@@ -311,6 +347,41 @@
             padding: 16px;
             margin-bottom: 16px;
         }
+
+        .trend-subtitle {
+            font-size: 0.7rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .severity-legend {
+            display: flex;
+            gap: 18px;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .legend-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        .legend-swatch.critical { background: #ff4444; }
+        .legend-swatch.high     { background: #ff8800; }
+        .legend-swatch.medium   { background: #ffcc00; }
+        .legend-swatch.low      { background: #00ff88; }
 
         .history-row {
             background: #111;
@@ -560,9 +631,13 @@
             <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:25px;">
                 {% if not viewing_history %}
                 <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run New Scan</button>
-                <a href="/download-pdf" class="scan-btn" style="text-decoration:none;">↓ Download PDF</a>
+                <a href="/download-pdf" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
+                <a href="/export/csv" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
+                <a href="/export/json" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
                 {% else %}
-                <a href="/download-pdf/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ Download PDF</a>
+                <a href="/download-pdf/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
+                <a href="/export/csv/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
+                <a href="/export/json/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
                 <a href="/" class="scan-btn" style="text-decoration:none;">← Latest Scan</a>
                 {% endif %}
             </div>
@@ -597,9 +672,19 @@
         <!-- Findings -->
         {% if analysis.findings %}
         <p class="section-title">Findings</p>
-        <div class="findings-grid">
+        <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all" onclick="filterFindings('all')">All</button>
+            <button class="filter-btn" data-filter="critical" onclick="filterFindings('critical')">Critical</button>
+            <button class="filter-btn" data-filter="high" onclick="filterFindings('high')">High</button>
+            <button class="filter-btn" data-filter="medium" onclick="filterFindings('medium')">Medium</button>
+            <button class="filter-btn" data-filter="low" onclick="filterFindings('low')">Low</button>
+            <input type="text" id="host-search" class="host-search-input"
+                   placeholder="Search by host or hostname..."
+                   oninput="filterFindings(currentSeverityFilter)">
+        </div>
+        <div class="findings-grid" id="findings-grid">
             {% for f in analysis.findings %}
-            <div class="finding-card {{ f.severity }}">
+            <div class="finding-card {{ f.severity }}" data-host="{{ f.host }} {{ f.hostname }}">
                 <div class="finding-header">
                     <span class="finding-name">
                         {{ f.name }}
@@ -662,9 +747,20 @@
     <!-- Scan History -->
     {% if history %}
     {% if history | length >= 2 %}
-    <p class="section-title">Score Trend</p>
+    <p class="section-title">Security Score & Severity Breakdown Trends</p>
+
     <div class="trend-container">
         <div id="score-trend-chart"></div>
+    </div>
+
+    <div class="trend-container">
+        <div id="severity-trend-chart"></div>
+        <div class="severity-legend">
+            <span class="legend-item"><span class="legend-swatch critical"></span>Critical</span>
+            <span class="legend-item"><span class="legend-swatch high"></span>High</span>
+            <span class="legend-item"><span class="legend-swatch medium"></span>Medium</span>
+            <span class="legend-item"><span class="legend-swatch low"></span>Low</span>
+        </div>
     </div>
 
     <div class="compare-controls">
@@ -838,6 +934,27 @@
              });
     }
 
+    // ── Findings filter ───────────────────────────────────────
+    let currentSeverityFilter = 'all';
+
+    function filterFindings(severity) {
+        currentSeverityFilter = severity;
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === severity);
+        });
+
+        const searchInput = document.getElementById('host-search');
+        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+        document.querySelectorAll('#findings-grid .finding-card').forEach(card => {
+            const matchesSeverity = severity === 'all' || card.classList.contains(severity);
+            const hostText = (card.dataset.host || '').toLowerCase();
+            const matchesSearch = !searchTerm || hostText.includes(searchTerm);
+            card.style.display = (matchesSeverity && matchesSearch) ? '' : 'none';
+        });
+    }
+
     function compareScans() {
         const fromEl = document.getElementById('compare-from');
         const toEl   = document.getElementById('compare-to');
@@ -893,11 +1010,78 @@
         `;
     }
 
+    function renderSeverityChart(data) {
+        const container = document.getElementById('severity-trend-chart');
+        if (!container || !data || data.length < 2) return;
+
+        const width  = container.clientWidth || 600;
+        const height = 180;
+        const padding = { top: 10, right: 10, bottom: 24, left: 30 };
+        const plotWidth  = width - padding.left - padding.right;
+        const plotHeight = height - padding.top - padding.bottom;
+
+        const n = data.length;
+        const stepX = plotWidth / (n - 1);
+        const xFor = (i) => padding.left + i * stepX;
+
+        const severities = ['critical', 'high', 'medium', 'low'];
+        const colours = { critical: '#ff4444', high: '#ff8800', medium: '#ffcc00', low: '#00ff88' };
+
+        // Scale the y-axis to whatever the largest count actually is,
+        // rather than a fixed 0-100 like the score chart — severity
+        // counts have no natural ceiling.
+        let maxCount = 1;
+        data.forEach(d => {
+            severities.forEach(s => {
+                const v = (d.severity_counts && d.severity_counts[s]) || 0;
+                if (v > maxCount) maxCount = v;
+            });
+        });
+        // Round the axis ceiling up a little for breathing room
+        maxCount = Math.ceil(maxCount * 1.15) || 1;
+
+        const yFor = (count) => padding.top + plotHeight - (count / maxCount) * plotHeight;
+
+        let gridLines = '';
+        const gridSteps = 4;
+        for (let i = 0; i <= gridSteps; i++) {
+            const value = Math.round((maxCount / gridSteps) * i);
+            const y = yFor(value);
+            gridLines += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="#1a1a1a" stroke-width="1" />`;
+            gridLines += `<text x="${padding.left - 6}" y="${y + 4}" fill="#555" font-size="10" text-anchor="end" font-family="'Courier New', monospace">${value}</text>`;
+        }
+
+        let lines = '';
+        severities.forEach(sev => {
+            const points = data.map((d, i) => {
+                const v = (d.severity_counts && d.severity_counts[sev]) || 0;
+                return `${xFor(i)},${yFor(v)}`;
+            }).join(' ');
+            lines += `<polyline points="${points}" fill="none" stroke="${colours[sev]}" stroke-width="2" opacity="0.9" />`;
+
+            data.forEach((d, i) => {
+                const v = (d.severity_counts && d.severity_counts[sev]) || 0;
+                lines += `<circle cx="${xFor(i)}" cy="${yFor(v)}" r="2.5" fill="${colours[sev]}">` +
+                         `<title>${d.timestamp} — ${sev}: ${v}</title></circle>`;
+            });
+        });
+
+        container.innerHTML = `
+            <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                ${gridLines}
+                ${lines}
+            </svg>
+        `;
+    }
+
     function loadTrendChart() {
         fetch('/api/history-trend')
             .then(r => r.json())
-            .then(data => renderTrendChart(data))
-            .catch(() => { /* chart is optional — fail silently */ });
+            .then(data => {
+                renderTrendChart(data);
+                renderSeverityChart(data);
+            })
+            .catch(() => { /* charts are optional — fail silently */ });
     }
 
     loadTrendChart();
