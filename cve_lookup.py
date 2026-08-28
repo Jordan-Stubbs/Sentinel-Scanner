@@ -15,7 +15,6 @@ MAX_CVE_PER_SERVICE = 3
 
 # Ports to skip CVE lookup on — internal tools, unknown services etc.
 SKIP_PORTS = {
-    '5000',   # Flask dashboard (this Pi)
     '8080',   # Generic proxy/dev ports
     '8888',   # Generic dev ports
     '8009',   # AJP connector
@@ -33,6 +32,12 @@ SKIP_PORTS = {
     '10001',  # Generic
     '8443',   # Generic HTTPS alt
 }
+# Always exclude the dashboard's own port, whatever it's currently
+# set to (config.DASHBOARD_PORT) — this is what actually fixes the
+# recurring bug, since it stays correct even if the port changes
+# again in the future, rather than needing a new hardcoded entry
+# added by hand each time.
+SKIP_PORTS.add(config.DASHBOARD_PORT)
 
 def cvss_to_severity(score):
     if score >= 9.0:

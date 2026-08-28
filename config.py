@@ -34,3 +34,15 @@ HISTORY_DIR            = os.path.join(BASE_DIR, 'history')
 VENV_PYTHON    = os.path.join(BASE_DIR, 'venv', 'bin', 'python3')
 MAIN_SCRIPT    = os.path.join(BASE_DIR, 'main.py')
 SCANNER_SCRIPT = os.path.join(BASE_DIR, 'scanner.py')
+
+# ── Dashboard port ───────────────────────────────────────────
+# Single source of truth for which port the Flask dashboard binds
+# to. app.py uses this to start the server, and cve_lookup.py uses
+# it to automatically exclude the dashboard's own port from CVE
+# lookups — so scanning the Pi itself never mismatches Flask against
+# an unrelated CVE (this happened twice: port 5000 -> "Apache"
+# SpamAssassin/Airflow, then again on port 5001 after the dashboard
+# was moved to make room for a Wireguard/Pi-hole setup). Change the
+# port by setting SCANNER_PORT in the systemd unit's environment,
+# not by editing this file.
+DASHBOARD_PORT = os.environ.get('SCANNER_PORT', '5000')

@@ -66,7 +66,10 @@
             width: 0%;
         }
 
+        .progress-bar-fill.error { background: #ff4444; }
+
         .progress-message { font-size: 0.8rem; color: #555; }
+        .progress-message.error { color: #ff4444; font-weight: bold; }
 
         .progress-stages {
             display: flex;
@@ -826,14 +829,36 @@
         fetch('/api/status')
             .then(r => r.json())
             .then(data => {
-                if (!data.running && data.stage !== 'complete') return;
+                // Previously this returned early on an error state too
+                // (running:false, stage:'error'), so a failed scan just
+                // silently vanished with no message and polling never
+                // stopped. Error now gets its own explicit branch below.
+                if (!data.running && data.stage !== 'complete' && data.stage !== 'error') return;
 
                 const overlay = document.getElementById('progress-overlay');
                 const fill    = document.getElementById('progress-fill');
                 const msg     = document.getElementById('progress-message');
                 const stopBtn = document.getElementById('stop-btn');
+                const scanBtn = document.getElementById('scan-btn');
 
                 overlay.classList.add('active');
+
+                if (data.stage === 'error') {
+                    fill.style.width = '100%';
+                    fill.classList.add('error');
+                    msg.textContent = '⚠ ' + data.message;
+                    msg.classList.add('error');
+                    if (stopBtn) stopBtn.style.display = 'none';
+                    if (scanBtn) {
+                        scanBtn.disabled = false;
+                        scanBtn.textContent = '▶ Run New Scan';
+                    }
+                    stopPolling();
+                    return;
+                }
+
+                fill.classList.remove('error');
+                msg.classList.remove('error');
                 fill.style.width = data.percent + '%';
                 msg.textContent  = data.message;
                 updateStages(data.stage);
@@ -875,6 +900,14 @@
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'started') {
+                    startPolling();
+                } else if (data.status === 'already_running') {
+                    // A scan genuinely IS running (just not one this
+                    // click started) — resume polling so its live
+                    // progress actually shows up, instead of leaving
+                    // a static message with no way to see current
+                    // status short of a manual page refresh.
+                    if (status) status.textContent = data.message;
                     startPolling();
                 } else {
                     if (status) status.textContent = 'Error: ' + data.message;

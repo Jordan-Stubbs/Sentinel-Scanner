@@ -5,11 +5,43 @@ import os
 import shutil
 import time
 from datetime import datetime
-from analyser import analyse, calculate_score, get_rating, get_severity_counts
-from llm_reporter import load_analysis, build_report_data, build_prompt, query_ollama, build_final_report, save_report
-from cve_lookup import run_cve_lookup
-import config
-import resource_monitor
+
+try:
+    import config
+    import resource_monitor
+    from analyser import analyse, calculate_score, get_rating, get_severity_counts
+    from llm_reporter import load_analysis, build_report_data, build_prompt, query_ollama, build_final_report, save_report
+    from cve_lookup import run_cve_lookup
+except Exception as import_error:
+    # A failure here happens BEFORE `if __name__ == "__main__":` ever
+    # runs, so the try/except further down in this file never gets a
+    # chance to catch it — a missing or broken module (e.g. a renamed
+    # or deleted .py file) would otherwise crash silently, leaving
+    # scan_status.json stuck on whatever it last said and the
+    # dashboard endlessly showing stale/looping status.
+    #
+    # Can't safely rely on config.SCAN_STATUS_PATH here since config
+    # itself might be what failed to import — so this computes the
+    # same default path config.py would, independently.
+    import traceback
+    traceback.print_exc()
+
+    fallback_status_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'scan_status.json'
+    )
+    try:
+        with open(fallback_status_path, 'w') as f:
+            json.dump({
+                'stage':   'error',
+                'message': f'Scan failed to start: {import_error}',
+                'percent': 0,
+                'running': False
+            }, f)
+        os.chmod(fallback_status_path, 0o666)
+    except Exception:
+        pass
+
+    sys.exit(1)
 
 def write_status(stage, message, percent, running=True):
     with open(config.SCAN_STATUS_PATH, 'w') as f:
@@ -118,7 +150,7 @@ def save_to_history(duration_str):
     print(f"[+] Scan saved to history/{timestamp}")
     return timestamp
 
-if __name__ == "__main__":
+def run_pipeline():
     print("="*60)
     print("  PORTABLE NETWORK VULNERABILITY SCANNER")
     print("="*60)
@@ -213,3 +245,24 @@ if __name__ == "__main__":
     print("="*60 + "\n")
 
     write_status('complete', f'Scan complete in {duration_str}.', 100, running=False)
+
+if __name__ == "__main__":
+    try:
+        run_pipeline()
+    except SystemExit:
+        # run_scanner() already calls write_status('error', ...) and
+        # sys.exit(1) itself on a scanner failure — nothing more to
+        # do here, just don't let this fall through to the generic
+        # handler below and overwrite that more specific message.
+        raise
+    except Exception as e:
+        # Guarantees scan_status.json always ends up with running:
+        # False, no matter what goes wrong or where. Without this,
+        # any unhandled error leaves the status file stuck showing
+        # running: true forever — and since trigger_scan() in app.py
+        # refuses to start a new scan while running is true, a single
+        # crash would permanently lock out every future scan until
+        # someone manually resets the file by hand.
+        print(f"\n[!] Scan failed with an unexpected error: {e}")
+        write_status('error', f'Scan failed: {e}', 0, running=False)
+        sys.exit(1)

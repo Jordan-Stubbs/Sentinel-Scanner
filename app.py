@@ -271,7 +271,7 @@ def trigger_scan():
         status = load_json(config.SCAN_STATUS_PATH)
         if status and status.get('running'):
             return jsonify({
-                'status':  'error',
+                'status':  'already_running',
                 'message': 'A scan is already in progress. Please wait for it to finish or stop it first.'
             })
 
@@ -372,4 +372,4 @@ def download_pdf_history(scan_id):
                      download_name=os.path.basename(path))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=int(config.DASHBOARD_PORT), debug=False)
