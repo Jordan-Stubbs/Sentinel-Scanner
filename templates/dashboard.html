@@ -273,6 +273,7 @@
         .severity-badge.low      { background: #00ff8822; color: #00ff88; }
 
         .finding-host  { font-size: 0.8rem;  color: #555; margin-bottom: 8px; }
+        .finding-meta  { font-size: 0.75rem; color: #446644; font-style: italic; margin-bottom: 8px; }
         .finding-desc  { font-size: 0.85rem; color: #888; line-height: 1.5; margin-bottom: 8px; }
         .finding-fix   { font-size: 0.8rem;  color: #00ff8888; }
         .finding-fix span { color: #00ff88; font-weight: bold; }
@@ -703,6 +704,13 @@
                     {% if f.vendor and f.vendor != 'Unknown' %} — {{ f.vendor }}{% endif %}
                     — Port {{ f.port }}
                 </div>
+                {% if (f.os and f.os != 'Unknown') or f.product %}
+                <div class="finding-meta">
+                    {% if f.os and f.os != 'Unknown' %}Device: {{ f.os }}{% endif %}
+                    {% if f.os and f.os != 'Unknown' and f.product %} — {% endif %}
+                    {% if f.product %}Detected: {{ f.product }}{% endif %}
+                </div>
+                {% endif %}
                 <div class="finding-desc">{{ f.description }}</div>
                 <div class="finding-fix"><span>Fix:</span> {{ f.remediation }}</div>
             </div>

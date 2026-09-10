@@ -2,7 +2,6 @@ import json
 import config
 
 RULES = [
-    # ── Remote Access / Admin ────────────────────────────────
     {
         'id': 'VULN-001',
         'name': 'Telnet Open',
@@ -39,8 +38,6 @@ RULES = [
         'description': 'ADB allows full shell access to an Android device over the network without authentication.',
         'remediation': 'Disable ADB over network in developer settings.'
     },
-
-    # ── File Transfer ────────────────────────────────────────
     {
         'id': 'VULN-005',
         'name': 'FTP Open',
@@ -59,8 +56,6 @@ RULES = [
         'description': 'SMB is exposed on the network. SMB vulnerabilities have been exploited by major ransomware including WannaCry and NotPetya.',
         'remediation': 'Block SMB at the network perimeter. Ensure Windows is fully patched. Disable SMBv1.'
     },
-
-    # ── Databases ────────────────────────────────────────────
     {
         'id': 'VULN-007',
         'name': 'MySQL Database Exposed',
@@ -106,8 +101,6 @@ RULES = [
         'description': 'Memcached is exposed on the network. It has no authentication and has been used in large-scale DDoS amplification attacks.',
         'remediation': 'Bind Memcached to localhost only and block port 11211 at the firewall.'
     },
-
-    # ── Network Services ─────────────────────────────────────
     {
         'id': 'VULN-012',
         'name': 'SOCKS Proxy Exposed',
@@ -144,8 +137,6 @@ RULES = [
         'description': 'An SMTP mail server is running. Open or misconfigured SMTP servers can be used as spam relays.',
         'remediation': 'Ensure SMTP relay is restricted to authorised users only. Disable if not needed.'
     },
-
-    # ── IoT / Embedded ───────────────────────────────────────
     {
         'id': 'VULN-016',
         'name': 'Unencrypted MQTT (IoT)',
@@ -173,8 +164,6 @@ RULES = [
         'description': 'SIP port is open. Misconfigured VoIP systems can allow toll fraud and eavesdropping on calls.',
         'remediation': 'Restrict SIP access to trusted IPs only.'
     },
-
-    # ── SSH ──────────────────────────────────────────────────
     {
         'id': 'VULN-019',
         'name': 'Outdated SSH Version',
@@ -199,6 +188,7 @@ def analyse(scan_results):
         ip       = host['ip']
         hostname = host['hostname']
         vendor   = host.get('vendor', '')
+        os_guess = host.get('os', 'Unknown')
 
         for proto, ports in host['protocols'].items():
             for port_num, port_info in ports.items():
@@ -208,6 +198,8 @@ def analyse(scan_results):
                             'host':        ip,
                             'hostname':    hostname,
                             'vendor':      vendor,
+                            'os':          os_guess,
+                            'product':     port_info.get('product', ''),
                             'port':        port_num,
                             'rule_id':     rule['id'],
                             'name':        rule['name'],
@@ -227,7 +219,6 @@ def calculate_score(findings):
         if sev in severity_counts:
             severity_counts[sev] += 1
 
-    # Diminishing returns — each extra finding of same severity hurts less
     penalty = 0
     for sev, count in severity_counts.items():
         weight = SEVERITY_WEIGHTS[sev]

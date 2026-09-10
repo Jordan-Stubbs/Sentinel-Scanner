@@ -78,6 +78,7 @@ def generate_pdf(base_dir=None):
     sty_sect   = make_style('T5',  'Helvetica',  8, MID_GREY,   TA_LEFT,   bold=True,  leading=11)
     sty_fname  = make_style('T6',  'Helvetica', 10, BLACK,      TA_LEFT,   bold=True,  leading=14)
     sty_fmeta  = make_style('T7',  'Helvetica',  8, MID_GREY,   TA_LEFT,               leading=12)
+    sty_fdevice = make_style('T7b', 'Helvetica', 8, GREEN,      TA_LEFT,               leading=12)
     sty_fdesc  = make_style('T8',  'Helvetica',  9, LIGHT_GREY, TA_LEFT,               leading=13)
     sty_ffix   = make_style('T9',  'Helvetica',  9, GREEN,      TA_LEFT,               leading=13)
     sty_badge  = make_style('T10', 'Helvetica',  7, BLACK,      TA_CENTER, bold=True,  leading=10)
@@ -144,6 +145,24 @@ def generate_pdf(base_dir=None):
                 header,
                 S(1, 2*mm),
                 Paragraph(f"{f['host']} ({f['hostname']}) — Port {f['port']}", sty_fmeta),
+            ]
+
+            # Device/detected-product line — only added when at least
+            # one of the two is present, same rule the dashboard uses.
+            device_os = f.get('os', '')
+            product   = f.get('product', '')
+            if (device_os and device_os != 'Unknown') or product:
+                parts = []
+                if device_os and device_os != 'Unknown':
+                    parts.append(f"Device: {device_os}")
+                if product:
+                    parts.append(f"Detected: {product}")
+                block += [
+                    S(1, 1*mm),
+                    Paragraph(' — '.join(parts), sty_fdevice),
+                ]
+
+            block += [
                 S(1, 1.5*mm),
                 Paragraph(f['description'], sty_fdesc),
                 S(1, 1.5*mm),

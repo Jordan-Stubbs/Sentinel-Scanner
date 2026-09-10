@@ -87,12 +87,10 @@ def scan_network(target):
     print(f"[*] Scanning {target}...")
 
     # -sV = service version, -O = OS detection, --open = open ports only
-    # Added -sn pass first then full scan for better MAC detection
     scanner.scan(hosts=target, arguments='-sV -O --open')
 
     results = []
     for host in scanner.all_hosts():
-        # Get MAC address
         mac = 'Unknown'
         vendor = 'Unknown'
         try:
@@ -100,13 +98,11 @@ def scan_network(target):
             mac = addresses.get('mac', 'Unknown')
             if mac and mac != 'Unknown':
                 vendor = get_vendor(mac)
-                # Fall back to nmap's own vendor detection if ours doesn't match
                 if vendor == 'Unknown':
                     vendor = scanner[host].get('vendor', {}).get(mac, 'Unknown')
         except Exception:
             pass
 
-        # Get OS detection info
         os_match = 'Unknown'
         try:
             os_matches = scanner[host].get('osmatch', [])
@@ -132,6 +128,15 @@ def scan_network(target):
                 host_data['protocols'][proto][port] = {
                     'state':   port_info['state'],
                     'service': port_info['name'],
+                    # nmap's specific detected product (e.g. "Werkzeug
+                    # httpd", "Apache httpd", "nginx") — previously
+                    # discarded here, which meant cve_lookup.py had no
+                    # way to tell a generic "http" category apart from
+                    # a specific real product, and had to fall back to
+                    # a static guess (always "Apache") that produced
+                    # confidently-wrong CVEs for anything else running
+                    # on a web port.
+                    'product': port_info.get('product', ''),
                     'version': port_info['version']
                 }
 
@@ -161,7 +166,6 @@ if __name__ == "__main__":
                 print(f"  {port}/{proto} - {info['service']} {info['version']} [{info['state']}]")
         print()
 
-    # Count total open ports across all hosts
     total_ports = sum(
         len(ports)
         for host in results

@@ -239,7 +239,8 @@ def stop_scan():
             if pid:
                 subprocess.run(['sudo', 'kill', pid])
 
-        with open(config.SCAN_STATUS_PATH, 'w') as f:
+        status_path = config.SCAN_STATUS_PATH
+        with open(status_path, 'w') as f:
             json.dump({
                 'stage':   'idle',
                 'message': 'Scan stopped by user.',
@@ -247,7 +248,7 @@ def stop_scan():
                 'running': False
             }, f)
         try:
-            os.chmod(config.SCAN_STATUS_PATH, 0o666)
+            os.chmod(status_path, 0o666)
         except Exception:
             pass
 
@@ -288,7 +289,7 @@ def build_findings_csv(analysis):
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        'Host', 'Hostname', 'Vendor', 'Port', 'ID', 'Name',
+        'Host', 'Hostname', 'Vendor', 'Device', 'Detected Product', 'Port', 'ID', 'Name',
         'Severity', 'CVSS Score', 'Description', 'Remediation', 'Source'
     ])
     for f in analysis.get('findings', []):
@@ -297,6 +298,8 @@ def build_findings_csv(analysis):
             f.get('host', ''),
             f.get('hostname', ''),
             f.get('vendor', ''),
+            f.get('os', ''),
+            f.get('product', ''),
             f.get('port', ''),
             f.get('cve_id') or f.get('rule_id', ''),
             f.get('name', ''),

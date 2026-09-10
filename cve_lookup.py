@@ -33,9 +33,8 @@ SKIP_PORTS = {
     '8443',   # Generic HTTPS alt
 }
 # Always exclude the dashboard's own port, whatever it's currently
-# set to (config.DASHBOARD_PORT) — this is what actually fixes the
-# recurring bug, since it stays correct even if the port changes
-# again in the future, rather than needing a new hardcoded entry
+# set to (config.DASHBOARD_PORT) — stays correct even if the port
+# changes again in future, rather than needing a new hardcoded entry
 # added by hand each time.
 SKIP_PORTS.add(config.DASHBOARD_PORT)
 
@@ -53,7 +52,6 @@ def clean_version(version_str):
     """Extract clean version number from nmap version string."""
     if not version_str or version_str.strip() == '':
         return None
-    # Extract first version-like pattern e.g. "6.6.0" from "OpenSSH 6.6.0p1 Ubuntu"
     match = re.search(r'(\d+\.\d+[\.\d]*)', version_str)
     if match:
         return match.group(1)
@@ -96,14 +94,11 @@ def query_nvd_online(keyword, retries=2):
 def is_relevant_cve(description, service_name, version):
     """
     Filter out CVEs that clearly don't match the detected service/version.
-    Prevents old irrelevant CVEs being returned for generic keyword matches.
     """
     desc_lower = description.lower()
     service_lower = service_name.lower()
 
-    # Must mention the service name in the description
     if service_lower not in desc_lower:
-        # Try common aliases
         aliases = {
             'openssh': ['ssh', 'openssh'],
             'openssl': ['ssl', 'openssl', 'ssleay'],
@@ -123,15 +118,9 @@ def is_relevant_cve(description, service_name, version):
         if not matched:
             return False
 
-    # If we have a version, check the CVE mentions a version range that could include it
-    if version:
-        # If description mentions a specific version that's clearly newer than ours
-        # we can't reliably filter so we just pass it through
-        pass
-
     return True
 
-def parse_nvd_response(vulnerabilities, service_name, version, host, hostname, vendor, port):
+def parse_nvd_response(vulnerabilities, service_name, version, host, hostname, vendor, os_guess, product, port):
     """Parse NVD API response into findings format."""
     findings = []
     for vuln in vulnerabilities:
@@ -139,22 +128,18 @@ def parse_nvd_response(vulnerabilities, service_name, version, host, hostname, v
             cve    = vuln.get('cve', {})
             cve_id = cve.get('id', 'Unknown')
 
-            # Get English description
             descriptions = cve.get('descriptions', [])
             description  = next(
                 (d['value'] for d in descriptions if d.get('lang') == 'en'),
                 'No description available.'
             )
 
-            # Filter irrelevant CVEs
             if not is_relevant_cve(description, service_name, version):
                 continue
 
-            # Truncate long descriptions
             if len(description) > 250:
                 description = description[:247] + '...'
 
-            # Get CVSS score — try v3.1, v3.0, v2 in order
             metrics  = cve.get('metrics', {})
             score    = 0.0
             severity = 'medium'
@@ -166,7 +151,6 @@ def parse_nvd_response(vulnerabilities, service_name, version, host, hostname, v
                     severity  = cvss_to_severity(score)
                     break
 
-            # Skip very low severity CVEs to reduce noise
             if score < 4.0:
                 continue
 
@@ -176,6 +160,8 @@ def parse_nvd_response(vulnerabilities, service_name, version, host, hostname, v
                 'host':        host,
                 'hostname':    hostname,
                 'vendor':      vendor,
+                'os':          os_guess,
+                'product':     product,
                 'port':        port,
                 'rule_id':     cve_id,
                 'name':        f"CVE: {cve_id}",
@@ -194,15 +180,9 @@ def parse_nvd_response(vulnerabilities, service_name, version, host, hostname, v
 
 def query_nvd_offline(keyword):
     """
-    Query the local CVE cache.
-
-    Matches on product-name terms (required). If the version number
-    also appears in a CVE's cached description, that entry is treated
-    as a stronger match and ranked first — but the absence of a version
-    match no longer excludes an entry outright. NVD descriptions rarely
-    spell out an exact version number even for CVEs that genuinely
-    affect that version, so requiring it was excluding valid matches
-    from the offline cache.
+    Query the local CVE cache. Matches on product-name terms
+    (required). Version-number terms are a scoring bonus if they
+    also appear in the description, but not a hard requirement.
     """
     if not os.path.exists(CVE_CACHE_PATH):
         return None
@@ -211,15 +191,10 @@ def query_nvd_offline(keyword):
             cache = json.load(f)
 
         terms = keyword.lower().split()
-
-        # Separate product-name terms (must match) from version-like
-        # terms (bonus if they match) — a version term contains a digit.
         name_terms    = [t for t in terms if not any(c.isdigit() for c in t)]
         version_terms = [t for t in terms if any(c.isdigit() for c in t)]
 
         if not name_terms:
-            # Keyword was version-only (shouldn't normally happen) —
-            # fall back to requiring every term, same as before.
             name_terms = terms
             version_terms = []
 
@@ -227,15 +202,12 @@ def query_nvd_offline(keyword):
         for cve_id, entry in cache.items():
             desc = entry.get('description', '').lower()
 
-            # Product name terms are still a hard requirement.
             if not all(term in desc for term in name_terms):
                 continue
 
             version_hit = bool(version_terms) and any(term in desc for term in version_terms)
             scored_matches.append((version_hit, entry))
 
-        # Entries whose description also mentions the version come first;
-        # order within each group otherwise follows cache iteration order.
         scored_matches.sort(key=lambda pair: pair[0], reverse=True)
 
         matches = [entry for _, entry in scored_matches[:MAX_CVE_PER_SERVICE]]
@@ -243,7 +215,7 @@ def query_nvd_offline(keyword):
     except Exception:
         return None
 
-def parse_offline_cache(matches, host, hostname, vendor, port):
+def parse_offline_cache(matches, host, hostname, vendor, os_guess, product, port):
     """Parse offline cache entries into findings format."""
     findings = []
     for entry in matches:
@@ -257,6 +229,8 @@ def parse_offline_cache(matches, host, hostname, vendor, port):
                 'host':        host,
                 'hostname':    hostname,
                 'vendor':      vendor,
+                'os':          os_guess,
+                'product':     product,
                 'port':        port,
                 'rule_id':     cve_id,
                 'name':        f"CVE: {cve_id}",
@@ -272,15 +246,23 @@ def parse_offline_cache(matches, host, hostname, vendor, port):
             continue
     return findings
 
-# Services worth checking — mapped from nmap service names to proper product names
+# Services worth checking — mapped from nmap service category to a
+# proper product name, used ONLY as a fallback when nmap couldn't
+# identify a specific product for that port (see resolve_service_name
+# below). Deliberately does NOT include 'http'/'https': too many
+# different real-world products share these generic categories
+# (Apache, nginx, a Flask/Werkzeug dev server, IIS, custom apps...)
+# to safely guess one — guessing wrong here produces confidently
+# wrong CVEs (this happened twice in practice: a Flask dashboard on
+# two different ports both got matched against unrelated Apache
+# SpamAssassin/Airflow CVEs). A lookup for http/https now only
+# proceeds if nmap actually detected a specific product name.
 SERVICES_OF_INTEREST = {
     'ssh':          'OpenSSH',
     'ftp':          'vsftpd',
     'telnet':       'telnet',
     'smtp':         'Postfix',
     'domain':       'BIND',
-    'http':         'Apache',
-    'https':        'OpenSSL',
     'ms-sql-s':     'Microsoft SQL Server',
     'mysql':        'MySQL',
     'rdp':          'Remote Desktop Protocol',
@@ -293,10 +275,48 @@ SERVICES_OF_INTEREST = {
     'blackice-icecap': None,
 }
 
+def resolve_service_name(service, product):
+    """
+    Decide what product name to search CVEs for, given nmap's generic
+    service category and (if any) its specifically detected product.
+
+    Priority:
+    1. A real detected product name from nmap — trusted directly,
+       regardless of category, since it's actual signal rather than
+       a guess.
+    2. SERVICES_OF_INTEREST's static fallback guess — only for
+       categories judged reliable enough to guess safely even
+       without a specific product (e.g. 'ssh' is overwhelmingly
+       OpenSSH in practice).
+    3. Otherwise: return None, meaning "don't guess — skip this
+       port's CVE lookup entirely." This deliberately replaces the
+       old behaviour of capitalising any unrecognised service name
+       and searching for it blindly.
+
+    Returns the product name to search for, or None if the lookup
+    should be skipped.
+    """
+    service = (service or '').lower()
+    product = (product or '').strip()
+
+    # Explicit exclusions (e.g. tcpwrapped, iphone-sync) always skip,
+    # even if nmap somehow reported a product string for them.
+    if service in SERVICES_OF_INTEREST and SERVICES_OF_INTEREST[service] is None:
+        return None
+
+    if product:
+        return product
+
+    # Falls back to the static guess if this category has one, or
+    # None (skip) if it doesn't — a single lookup covers both cases.
+    return SERVICES_OF_INTEREST.get(service)
+
 def run_cve_lookup(scan_results):
     """
     Main function — runs CVE lookup for all detected services.
-    Only queries services where nmap detected a specific version string.
+    Only queries services where nmap detected a specific version
+    string AND either a specific product name or a category judged
+    reliable enough to guess safely (see resolve_service_name).
     Returns list of CVE findings and whether online mode was used.
     """
     all_cve_findings = []
@@ -307,60 +327,53 @@ def run_cve_lookup(scan_results):
         ip       = host.get('ip', '')
         hostname = host.get('hostname', '')
         vendor   = host.get('vendor', '')
+        os_guess = host.get('os', 'Unknown')
 
         for proto, ports in host.get('protocols', {}).items():
             for port_num, port_info in ports.items():
-                # Skip excluded ports
                 if str(port_num) in SKIP_PORTS:
                     continue
 
                 service = port_info.get('service', '').lower()
+                product = port_info.get('product', '')
                 version = port_info.get('version', '').strip()
 
-                # Skip services we can't meaningfully look up
-                if service in SERVICES_OF_INTEREST and SERVICES_OF_INTEREST[service] is None:
-                    continue
-
-                # Only proceed if nmap detected a version string
                 clean_ver = clean_version(version)
                 if not clean_ver:
                     print(f"  [CVE] Skipping {service} on port {port_num} — no version detected")
                     continue
 
-                # Get the proper product name
-                service_name = SERVICES_OF_INTEREST.get(service, service.capitalize())
+                service_name = resolve_service_name(service, product)
+                if service_name is None:
+                    print(f"  [CVE] Skipping {service} on port {port_num} — no specific product detected, category too ambiguous to guess safely")
+                    continue
 
-                # Build search query with version
                 keyword = build_search_query(service_name, clean_ver)
 
-                # Skip duplicates
                 if keyword in services_checked:
                     continue
                 services_checked.add(keyword)
 
                 print(f"  [CVE] Checking: {keyword} (port {port_num})")
 
-                # Try online first
                 vulns = query_nvd_online(keyword)
 
                 if vulns is None:
-                    # Online failed — try offline cache
                     online_mode = False
                     print(f"  [CVE] Offline mode — checking local cache for: {keyword}")
                     offline_matches = query_nvd_offline(keyword)
                     if offline_matches:
                         findings = parse_offline_cache(
-                            offline_matches, ip, hostname, vendor, port_num
+                            offline_matches, ip, hostname, vendor, os_guess, product, port_num
                         )
                         all_cve_findings.extend(findings)
                 elif vulns:
                     findings = parse_nvd_response(
                         vulns, service_name, clean_ver,
-                        ip, hostname, vendor, port_num
+                        ip, hostname, vendor, os_guess, product, port_num
                     )
                     all_cve_findings.extend(findings)
 
-                # Respect NVD rate limit — max 5 requests per 30 seconds without API key
                 time.sleep(0.6)
 
     return all_cve_findings, online_mode
