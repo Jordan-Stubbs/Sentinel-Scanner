@@ -126,6 +126,7 @@ def index():
     analysis    = load_json(config.ANALYSIS_RESULTS_PATH)
     report_text = None
     scan_meta   = None
+    scan_hosts  = []
 
     if os.path.exists(config.LLM_REPORT_PATH):
         with open(config.LLM_REPORT_PATH) as f:
@@ -133,7 +134,8 @@ def index():
 
     scan_data = load_json(config.SCAN_RESULTS_PATH)
     if scan_data and isinstance(scan_data, dict):
-        scan_meta = scan_data.get('meta')
+        scan_meta  = scan_data.get('meta')
+        scan_hosts = scan_data.get('hosts', [])
 
     history = get_history()
 
@@ -141,6 +143,7 @@ def index():
                            analysis=analysis,
                            report=report_text,
                            scan_meta=scan_meta,
+                           scan_hosts=scan_hosts,
                            history=history,
                            hostname=get_hostname())
 
@@ -150,6 +153,7 @@ def view_history(scan_id):
     analysis    = load_json(os.path.join(base, 'analysis_results.json'))
     report_text = None
     scan_meta   = None
+    scan_hosts  = []
 
     report_path = os.path.join(base, 'llm_report.txt')
     if os.path.exists(report_path):
@@ -158,7 +162,8 @@ def view_history(scan_id):
 
     scan_data = load_json(os.path.join(base, 'scan_results.json'))
     if scan_data and isinstance(scan_data, dict):
-        scan_meta = scan_data.get('meta')
+        scan_meta  = scan_data.get('meta')
+        scan_hosts = scan_data.get('hosts', [])
 
     history = get_history()
 
@@ -166,6 +171,7 @@ def view_history(scan_id):
                            analysis=analysis,
                            report=report_text,
                            scan_meta=scan_meta,
+                           scan_hosts=scan_hosts,
                            history=history,
                            viewing_history=scan_id,
                            hostname=get_hostname())
@@ -276,16 +282,24 @@ def trigger_scan():
                 'message': 'A scan is already in progress. Please wait for it to finish or stop it first.'
             })
 
-        subprocess.Popen(
-            ['sudo', config.VENV_PYTHON, config.MAIN_SCRIPT],
-            cwd=config.BASE_DIR
-        )
+        body = request.get_json(silent=True) or {}
+        generate_ai_report = body.get('generate_ai_report', True)
+
+        cmd = ['sudo', config.VENV_PYTHON, config.MAIN_SCRIPT]
+        if not generate_ai_report:
+            cmd.append('--skip-ai-report')
+
+        subprocess.Popen(cmd, cwd=config.BASE_DIR)
         return jsonify({'status': 'started'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-def build_findings_csv(analysis):
-    """Flatten a scan's findings into CSV rows for spreadsheet use."""
+def build_findings_csv(analysis, scan_hosts=None):
+    """Flatten a scan's findings into CSV rows for spreadsheet use.
+    If scan_hosts is given, a second 'Discovered Hosts' table is
+    appended below the findings table, separated by a blank row —
+    this covers devices with zero findings, which the findings table
+    alone would never mention at all."""
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -309,6 +323,23 @@ def build_findings_csv(analysis):
             f.get('remediation', ''),
             'CVE' if is_cve else 'Rule',
         ])
+
+    if scan_hosts:
+        writer.writerow([])
+        writer.writerow(['Discovered Hosts'])
+        writer.writerow(['IP', 'Hostname', 'Vendor', 'Device (OS)', 'Open Ports'])
+        for host in scan_hosts:
+            port_count = sum(len(ports) for ports in host.get('protocols', {}).values())
+            vendor  = host.get('vendor', '')
+            os_guess = host.get('os', '')
+            writer.writerow([
+                host.get('ip', ''),
+                host.get('hostname', ''),
+                vendor if vendor and vendor != 'Unknown' else '',
+                os_guess if os_guess and os_guess != 'Unknown' else '',
+                port_count,
+            ])
+
     return output.getvalue()
 
 @app.route('/export/csv')
@@ -316,9 +347,11 @@ def export_csv():
     analysis = load_json(config.ANALYSIS_RESULTS_PATH)
     if not analysis:
         return "No scan data available.", 404
+    scan_data  = load_json(config.SCAN_RESULTS_PATH)
+    scan_hosts = scan_data.get('hosts', []) if scan_data and isinstance(scan_data, dict) else []
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     return Response(
-        build_findings_csv(analysis),
+        build_findings_csv(analysis, scan_hosts),
         mimetype='text/csv',
         headers={'Content-Disposition': f'attachment; filename=findings_{timestamp}.csv'}
     )
@@ -329,8 +362,10 @@ def export_csv_history(scan_id):
     analysis = load_json(os.path.join(base, 'analysis_results.json'))
     if not analysis:
         return "Scan not found.", 404
+    scan_data  = load_json(os.path.join(base, 'scan_results.json'))
+    scan_hosts = scan_data.get('hosts', []) if scan_data and isinstance(scan_data, dict) else []
     return Response(
-        build_findings_csv(analysis),
+        build_findings_csv(analysis, scan_hosts),
         mimetype='text/csv',
         headers={'Content-Disposition': f'attachment; filename=findings_{scan_id}.csv'}
     )
@@ -340,9 +375,13 @@ def export_json():
     analysis = load_json(config.ANALYSIS_RESULTS_PATH)
     if not analysis:
         return "No scan data available.", 404
+    scan_data = load_json(config.SCAN_RESULTS_PATH)
+    export_data = dict(analysis)
+    if scan_data and isinstance(scan_data, dict):
+        export_data['discovered_hosts'] = scan_data.get('hosts', [])
     timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     return Response(
-        json.dumps(analysis, indent=2),
+        json.dumps(export_data, indent=2),
         mimetype='application/json',
         headers={'Content-Disposition': f'attachment; filename=scan_{timestamp}.json'}
     )
@@ -353,8 +392,12 @@ def export_json_history(scan_id):
     analysis = load_json(os.path.join(base, 'analysis_results.json'))
     if not analysis:
         return "Scan not found.", 404
+    scan_data = load_json(os.path.join(base, 'scan_results.json'))
+    export_data = dict(analysis)
+    if scan_data and isinstance(scan_data, dict):
+        export_data['discovered_hosts'] = scan_data.get('hosts', [])
     return Response(
-        json.dumps(analysis, indent=2),
+        json.dumps(export_data, indent=2),
         mimetype='application/json',
         headers={'Content-Disposition': f'attachment; filename=scan_{scan_id}.json'}
     )

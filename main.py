@@ -49,7 +49,12 @@ def write_status(stage, message, percent, running=True):
             'stage':   stage,
             'message': message,
             'percent': percent,
-            'running': running
+            'running': running,
+            # Read by the dashboard so the AI Report stage label and
+            # indicator reflect what THIS scan was actually started
+            # with — a ground-truth server value, not just whatever
+            # the browser's checkbox happens to show right now.
+            'ai_report_enabled': not SKIP_AI_REPORT,
         }, f)
     # Ensure both root (this script, run via sudo) and admin (the Flask
     # service) can read/write this file regardless of who wrote it last —
@@ -58,6 +63,14 @@ def write_status(stage, message, percent, running=True):
         os.chmod(config.SCAN_STATUS_PATH, 0o666)
     except Exception:
         pass
+
+# Set via the dashboard's "Generate AI Report" checkbox — app.py's
+# trigger_scan() appends this flag to the command it spawns when the
+# user unchecks it. Skipping the LLM step removes the single biggest
+# CPU spike in the whole pipeline (99.9% CPU observed live during
+# generation), useful for quick/frequent scans or when freeing up
+# headroom for something else running concurrently.
+SKIP_AI_REPORT = '--skip-ai-report' in sys.argv
 
 def run_scanner():
     write_status('scanning', 'Scanning network — this takes 2-3 minutes...', 10)
@@ -147,6 +160,20 @@ def save_to_history(duration_str):
     with open(os.path.join(history_dir, 'meta.json'), 'w') as f:
         json.dump({'duration': duration_str}, f)
 
+    # This whole script runs under sudo (root), so every file/directory
+    # created above is root-owned. Without this, the dashboard's own
+    # "Clear History" button — which runs as the admin user, not root —
+    # fails with a PermissionError trying to delete them later. That
+    # failure gets silently swallowed by app.py's clear_history() route
+    # (which still returns HTTP 200) and the button just appears to do
+    # nothing. This is the exact same failure shape as bugs 3/13/19.
+    try:
+        os.chmod(history_dir, 0o777)
+        for filename in os.listdir(history_dir):
+            os.chmod(os.path.join(history_dir, filename), 0o666)
+    except Exception:
+        pass
+
     print(f"[+] Scan saved to history/{timestamp}")
     return timestamp
 
@@ -189,16 +216,28 @@ def run_pipeline():
     print(f"  FINAL SCORE (with CVEs): {final_score}/100  |  RATING: {final_rating}")
     print(f"{'='*50}\n")
 
+    # Distinguishes *why* there's no AI report — the dashboard shows a
+    # different message for each: no vulnerabilities to report on at
+    # all, vs. the user explicitly disabled it for this scan, vs. an
+    # actual report being generated normally.
+    if total == 0:
+        ai_report_status = 'no_findings'
+    elif SKIP_AI_REPORT:
+        ai_report_status = 'opted_out'
+    else:
+        ai_report_status = 'generated'
+
     # Save combined analysis
     analysis_data = {
-        'score':           final_score,
-        'rating':          final_rating,
-        'findings':        all_findings,
-        'severity_counts': final_counts,
-        'meta':            meta,
-        'cve_count':       len(cve_findings),
-        'cve_mode':        'online' if online_mode else 'offline',
-        'timestamp':       datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        'score':             final_score,
+        'rating':            final_rating,
+        'findings':          all_findings,
+        'severity_counts':   final_counts,
+        'meta':              meta,
+        'cve_count':         len(cve_findings),
+        'cve_mode':          'online' if online_mode else 'offline',
+        'ai_report_status':  ai_report_status,
+        'timestamp':         datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
 
     with open(config.ANALYSIS_RESULTS_PATH, 'w') as f:
@@ -210,6 +249,15 @@ def run_pipeline():
     if total == 0:
         print("[+] No vulnerabilities found. Skipping AI report.")
         write_status('reporting', 'No vulnerabilities found.', 90)
+        # Clear any stale report from a previous scan so it doesn't
+        # get copied into THIS scan's history as if it were current.
+        if os.path.exists(config.LLM_REPORT_PATH):
+            os.remove(config.LLM_REPORT_PATH)
+    elif SKIP_AI_REPORT:
+        print("[+] AI report generation skipped (disabled for this scan).")
+        write_status('reporting', 'AI report skipped by user.', 90)
+        if os.path.exists(config.LLM_REPORT_PATH):
+            os.remove(config.LLM_REPORT_PATH)
     else:
         resource_snapshots['before_llm'] = resource_monitor.take_snapshot()
         run_llm_reporter()

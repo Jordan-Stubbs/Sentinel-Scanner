@@ -160,6 +160,45 @@
         .stop-btn:hover { background: #ff4444; color: #0a0a0a; }
         .stop-btn:disabled { border-color: #444; color: #444; cursor: not-allowed; }
 
+        .ai-toggle-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-toggle-label:hover { border-color: #00ff88; color: #00ff88; }
+
+        .ai-toggle-label.active {
+            border-color: #00ff88;
+            color: #00ff88;
+            background: #00ff8811;
+        }
+
+        .ai-toggle-label input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: #00ff88;
+            cursor: pointer;
+        }
+
+        .ai-status-indicator {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #ffcc00;
+            margin-top: 8px;
+        }
+
         .danger-btn {
             display: inline-block;
             padding: 8px 20px;
@@ -277,6 +316,25 @@
         .finding-desc  { font-size: 0.85rem; color: #888; line-height: 1.5; margin-bottom: 8px; }
         .finding-fix   { font-size: 0.8rem;  color: #00ff8888; }
         .finding-fix span { color: #00ff88; font-weight: bold; }
+
+        /* Hosts Overview */
+        .hosts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .host-card {
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 4px;
+            padding: 14px 16px;
+        }
+
+        .host-ip { font-weight: bold; color: #00ff88; font-size: 0.95rem; }
+        .host-hostname { color: #888; font-size: 0.8rem; margin-top: 2px; }
+        .host-meta { color: #555; font-size: 0.75rem; margin-top: 6px; line-height: 1.5; }
 
         /* AI Report */
         .report-box {
@@ -570,6 +628,7 @@
             <div class="progress-bar-fill" id="progress-fill"></div>
         </div>
         <div class="progress-message" id="progress-message">Starting...</div>
+        <div class="ai-status-indicator" id="ai-status-indicator"></div>
         <div class="progress-stages">
             <span class="progress-stage" id="stage-scanning">① Scanning</span>
             <span class="progress-stage" id="stage-analysing">② Analysing</span>
@@ -632,19 +691,27 @@
                 {{ analysis.findings | length }} finding(s) detected
                 {% if analysis.timestamp %} — {{ analysis.timestamp }}{% endif %}
             </div>
-            <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:25px;">
-                {% if not viewing_history %}
+            {% if not viewing_history %}
+            <div style="display:flex; gap:15px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:25px;">
                 <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run New Scan</button>
+                <label class="ai-toggle-label">
+                    <input type="checkbox" id="generate-ai-report" checked>
+                    Generate AI Report
+                </label>
+            </div>
+            <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:15px;">
                 <a href="/download-pdf" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
                 <a href="/export/csv" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
                 <a href="/export/json" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
-                {% else %}
+            </div>
+            {% else %}
+            <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:25px;">
                 <a href="/download-pdf/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
                 <a href="/export/csv/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
                 <a href="/export/json/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
                 <a href="/" class="scan-btn" style="text-decoration:none;">← Latest Scan</a>
-                {% endif %}
             </div>
+            {% endif %}
             <div id="scan-status"></div>
         </div>
 
@@ -672,6 +739,25 @@
                 <div class="tile-label">Ollama Model</div>
             </div>
         </div>
+
+        <!-- Hosts Overview -->
+        {% if scan_hosts %}
+        <p class="section-title">Discovered Hosts</p>
+        <div class="hosts-grid">
+            {% for host in scan_hosts %}
+            <div class="host-card">
+                <div class="host-ip">{{ host.ip }}</div>
+                {% if host.hostname %}<div class="host-hostname">{{ host.hostname }}</div>{% endif %}
+                <div class="host-meta">
+                    {% if host.vendor and host.vendor != 'Unknown' %}{{ host.vendor }}<br>{% endif %}
+                    {% if host.os and host.os != 'Unknown' %}{{ host.os }}<br>{% endif %}
+                    {% set port_count = host.protocols.values() | map('length') | sum %}
+                    {{ port_count }} open port{{ 's' if port_count != 1 else '' }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- Findings -->
         {% if analysis.findings %}
@@ -720,12 +806,18 @@
 
         <!-- AI Report -->
         <p class="section-title">AI Generated Report</p>
-        <div class="report-box" id="report-box">{% if report %}{{ report }}{% else %}<span style="color:#333; font-style:italic;">Run a scan to generate an AI report.</span>{% endif %}</div>
+        <div class="report-box" id="report-box">{% if report %}{{ report }}{% elif analysis.ai_report_status == 'opted_out' %}<span style="color:#ffcc00; font-style:italic;">AI report was not generated — disabled for this scan.</span>{% elif analysis.ai_report_status == 'no_findings' %}<span style="color:#333; font-style:italic;">No vulnerabilities found — no AI report needed.</span>{% else %}<span style="color:#333; font-style:italic;">Run a scan to generate an AI report.</span>{% endif %}</div>
 
     {% else %}
         <div class="no-data">
             <p>No scan results found. Run your first scan to get started.</p>
-            <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run First Scan</button>
+            <div style="display:flex; gap:15px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:20px;">
+                <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run First Scan</button>
+                <label class="ai-toggle-label">
+                    <input type="checkbox" id="generate-ai-report" checked>
+                    Generate AI Report
+                </label>
+            </div>
             <div id="scan-status"></div>
         </div>
 
@@ -871,6 +963,23 @@
                 msg.textContent  = data.message;
                 updateStages(data.stage);
 
+                // Relabel the AI Report stage and show an indicator when
+                // this specific running scan has AI reporting disabled —
+                // read from the backend (main.py sets this from the flag
+                // it was actually started with), not from the checkbox's
+                // current on-page state, since those can differ (e.g.
+                // this poll could be showing someone else's already-
+                // running scan, started with a different setting).
+                const stageReportingEl = document.getElementById('stage-reporting');
+                const aiIndicator      = document.getElementById('ai-status-indicator');
+                if (data.ai_report_enabled === false) {
+                    if (stageReportingEl) stageReportingEl.textContent = '④ AI Report (Skipped)';
+                    if (aiIndicator) aiIndicator.textContent = '⚠ AI report generation disabled for this scan';
+                } else {
+                    if (stageReportingEl) stageReportingEl.textContent = '④ AI Report';
+                    if (aiIndicator) aiIndicator.textContent = '';
+                }
+
                 if (stopBtn) stopBtn.style.display = 'inline-block';
 
                 if (data.stage === 'complete') {
@@ -897,14 +1006,22 @@
     }
 
     function triggerScan() {
-        const btn    = document.getElementById('scan-btn');
-        const status = document.getElementById('scan-status');
+        const btn      = document.getElementById('scan-btn');
+        const status   = document.getElementById('scan-status');
+        const aiToggle = document.getElementById('generate-ai-report');
+        // Default true if the checkbox somehow isn't on the page —
+        // never silently skip the report without explicit user intent.
+        const generateAiReport = aiToggle ? aiToggle.checked : true;
 
         btn.disabled    = true;
         btn.textContent = '⏳ Starting...';
         if (status) status.textContent = '';
 
-        fetch('/scan', { method: 'POST' })
+        fetch('/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ generate_ai_report: generateAiReport })
+        })
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'started') {
@@ -1126,6 +1243,38 @@
     }
 
     loadTrendChart();
+
+    // ── AI report toggle ─────────────────────────────────────
+    // Previously the checkbox always reset to checked on page
+    // reload (its hardcoded HTML default), which happens
+    // automatically 2s after a scan completes — so unchecking it,
+    // running a scan, and watching it "check itself again" right
+    // after was confusing about what the scan actually used (the
+    // scan itself was always correct; only the display was
+    // misleading). Persisting the choice in this browser fixes that.
+    function updateAiToggleStyle() {
+        const toggle = document.getElementById('generate-ai-report');
+        const label  = toggle ? toggle.closest('.ai-toggle-label') : null;
+        if (toggle && label) {
+            label.classList.toggle('active', toggle.checked);
+        }
+    }
+
+    function initAiToggle() {
+        const toggle = document.getElementById('generate-ai-report');
+        if (!toggle) return;
+
+        const saved = localStorage.getItem('generateAiReport');
+        toggle.checked = (saved === null) ? true : (saved === 'true');
+        updateAiToggleStyle();
+
+        toggle.addEventListener('change', () => {
+            localStorage.setItem('generateAiReport', toggle.checked);
+            updateAiToggleStyle();
+        });
+    }
+
+    initAiToggle();
 
     // ── System resource monitoring ──────────────────────────
     function classifyValue(percent, warnAt, critAt) {

@@ -39,7 +39,16 @@ def load_data(base_dir):
     if os.path.exists(p):
         with open(p) as f:
             report_text = f.read()
-    return analysis, report_text
+
+    hosts = []
+    scan_path = os.path.join(base_dir, 'scan_results.json')
+    if os.path.exists(scan_path):
+        with open(scan_path) as f:
+            scan_data = json.load(f)
+        if isinstance(scan_data, dict):
+            hosts = scan_data.get('hosts', [])
+
+    return analysis, report_text, hosts
 
 def make_style(name, font, size, colour, align=TA_LEFT, bold=False, leading=None):
     fn = f'{font}-Bold' if bold else font
@@ -65,7 +74,7 @@ def generate_pdf(base_dir=None):
     timestamp_display = now.strftime('%d %B %Y at %H:%M')
     output_path = os.path.join(base_dir, f'security_report_{timestamp_file}.pdf')
 
-    analysis, report_text = load_data(base_dir)
+    analysis, report_text, hosts = load_data(base_dir)
     score    = analysis['score']
     rating   = analysis['rating']
     findings = analysis['findings']
@@ -119,6 +128,46 @@ def generate_pdf(base_dir=None):
         HR(),
     ]
 
+    # ── Discovered Hosts ─────────────────────────────────────
+    # Every scanned device, regardless of whether it has any
+    # findings — a device inventory, not just a vulnerable-devices
+    # list (matches the dashboard's "Discovered Hosts" section).
+    if hosts:
+        story += [S(1, 5*mm), Paragraph('DISCOVERED HOSTS', sty_sect), S(1, 3*mm)]
+
+        host_header_sty = make_style('HH', 'Helvetica', 7, MID_GREY, TA_LEFT, bold=True, leading=9)
+        host_cell_sty   = make_style('HC', 'Helvetica', 7, BLACK,    TA_LEFT,             leading=9)
+
+        table_rows = [[
+            Paragraph('IP', host_header_sty),
+            Paragraph('Hostname', host_header_sty),
+            Paragraph('Vendor', host_header_sty),
+            Paragraph('Device (OS)', host_header_sty),
+            Paragraph('Ports', host_header_sty),
+        ]]
+
+        for host in hosts:
+            port_count = sum(len(ports) for ports in host.get('protocols', {}).values())
+            vendor   = host.get('vendor', '')
+            os_guess = host.get('os', '')
+            table_rows.append([
+                Paragraph(host.get('ip', ''), host_cell_sty),
+                Paragraph(host.get('hostname', '') or '—', host_cell_sty),
+                Paragraph(vendor if vendor and vendor != 'Unknown' else '—', host_cell_sty),
+                Paragraph(os_guess if os_guess and os_guess != 'Unknown' else '—', host_cell_sty),
+                Paragraph(str(port_count), host_cell_sty),
+            ])
+
+        hosts_table = Table(table_rows, colWidths=['16%', '22%', '18%', '34%', '10%'])
+        hosts_table.setStyle(TableStyle([
+            ('VALIGN',        (0,0), (-1,-1), 'TOP'),
+            ('LINEBELOW',     (0,0), (-1,0), 0.75, RULE_GREY),
+            ('TOPPADDING',    (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ]))
+
+        story += [hosts_table, S(1, 5*mm), HR()]
+
     # ── Findings ─────────────────────────────────────────────
     if findings:
         story += [S(1, 5*mm), Paragraph('FINDINGS', sty_sect), S(1, 3*mm)]
@@ -141,10 +190,13 @@ def generate_pdf(base_dir=None):
                 ('LINEBELOW',     (0,0), (-1,-1), 0.75, sev_col),
             ]))
 
+            vendor = f.get('vendor', '')
+            vendor_str = f" — {vendor}" if vendor and vendor != 'Unknown' else ''
+
             block = [
                 header,
                 S(1, 2*mm),
-                Paragraph(f"{f['host']} ({f['hostname']}) — Port {f['port']}", sty_fmeta),
+                Paragraph(f"{f['host']} ({f['hostname']}){vendor_str} — Port {f['port']}", sty_fmeta),
             ]
 
             # Device/detected-product line — only added when at least
