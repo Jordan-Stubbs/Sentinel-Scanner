@@ -137,9 +137,6 @@ def parse_nvd_response(vulnerabilities, service_name, version, host, hostname, v
             if not is_relevant_cve(description, service_name, version):
                 continue
 
-            if len(description) > 250:
-                description = description[:247] + '...'
-
             metrics  = cve.get('metrics', {})
             score    = 0.0
             severity = 'medium'
