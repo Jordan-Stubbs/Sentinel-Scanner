@@ -19,3 +19,5 @@ cve_cache.json
 # OS/editor cruft
 .DS_Store
 *.swp
+traffic_status.json
+traffic_results.json

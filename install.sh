@@ -72,9 +72,11 @@ ok "Python dependencies installed."
 echo ""
 
 # ── 3. Sudoers entry ─────────────────────────────────────────
-# scanner.py and main.py need root for nmap's OS detection; stop-scan
-# needs root to kill a running scan. Generated fresh each run so this
-# stays correct even if the install path or user changes.
+# scanner.py and main.py need root for nmap's OS detection; the
+# traffic monitor needs root for raw packet capture; stop-scan and
+# stop-traffic-monitor need root to kill a running process. Generated
+# fresh each run so this stays correct even if the install path or
+# user changes.
 log "Configuring sudoers (passwordless nmap/kill access for this install only)..."
 SUDOERS_FILE="/etc/sudoers.d/scanner"
 SUDOERS_TMP="$(mktemp)"
@@ -82,6 +84,7 @@ SUDOERS_TMP="$(mktemp)"
 cat > "$SUDOERS_TMP" <<EOF
 $INSTALL_USER ALL=(ALL) NOPASSWD: $VENV_PYTHON $SCRIPT_DIR/scanner.py
 $INSTALL_USER ALL=(ALL) NOPASSWD: $VENV_PYTHON $SCRIPT_DIR/main.py
+$INSTALL_USER ALL=(ALL) NOPASSWD: $VENV_PYTHON $SCRIPT_DIR/traffic_monitor.py
 $INSTALL_USER ALL=(ALL) NOPASSWD: /bin/kill
 EOF
 
@@ -108,6 +111,15 @@ while true; do
 done
 echo ""
 
+# ── 4b. Dashboard port ──────────────────────────────────────
+# Defaults to 5000, but some setups need something else — e.g. this
+# project's own dev machine also runs a separate WireGuard dashboard
+# that needed a specific port, which is exactly the kind of conflict
+# this prompt exists to avoid discovering after the fact.
+read -p "    Dashboard port [5000]: " DASH_PORT
+DASH_PORT="${DASH_PORT:-5000}"
+echo ""
+
 # ── 5. systemd service — dashboard ──────────────────────────
 log "Setting up the dashboard systemd service..."
 sudo tee /etc/systemd/system/scanner.service > /dev/null <<EOF
@@ -121,6 +133,7 @@ User=$INSTALL_USER
 WorkingDirectory=$SCRIPT_DIR
 Environment=SCANNER_USERNAME=$DASH_USER
 Environment=SCANNER_PASSWORD=$DASH_PASS
+Environment=SCANNER_PORT=$DASH_PORT
 ExecStart=$VENV_PYTHON $SCRIPT_DIR/app.py
 Restart=on-failure
 RestartSec=5
@@ -264,6 +277,6 @@ echo ""
 IP_ADDR="$(hostname -I 2>/dev/null | awk '{print $1}')"
 echo "============================================================"
 ok "Install complete."
-echo "    Dashboard: http://${IP_ADDR:-<this-machine-ip>}:5000"
+echo "    Dashboard: http://${IP_ADDR:-<this-machine-ip>}:$DASH_PORT"
 echo "    Username:  $DASH_USER"
 echo "============================================================"

@@ -7,6 +7,7 @@ import socket
 import csv
 import io
 from datetime import datetime
+import time
 import urllib.request
 import urllib.error
 import config
@@ -282,6 +283,13 @@ def trigger_scan():
                 'message': 'A scan is already in progress. Please wait for it to finish or stop it first.'
             })
 
+        traffic_status = load_json(config.TRAFFIC_STATUS_PATH)
+        if traffic_status and traffic_status.get('running'):
+            return jsonify({
+                'status':  'already_running',
+                'message': 'A traffic monitor capture is currently in progress. Please wait for it to finish first.'
+            })
+
         body = request.get_json(silent=True) or {}
         generate_ai_report = body.get('generate_ai_report', True)
 
@@ -293,6 +301,160 @@ def trigger_scan():
         return jsonify({'status': 'started'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
+
+def correlate_traffic_flags(data):
+    """Cross-references flagged source IPs against the latest scan's
+    findings. Computed fresh each time results are read (rather than
+    baked in once at capture time) so it always reflects whatever the
+    current latest scan is, even if a new vulnerability scan runs
+    after this capture completed."""
+    analysis = load_json(config.ANALYSIS_RESULTS_PATH)
+    findings_by_host = {}
+    if analysis:
+        for f in analysis.get('findings', []):
+            host = f.get('host')
+            if host:
+                findings_by_host[host] = findings_by_host.get(host, 0) + 1
+
+    for flag in data.get('port_scan_flags', []):
+        flag['known_findings'] = findings_by_host.get(flag['source_ip'], 0)
+    for flag in data.get('arp_sweep_flags', []):
+        flag['known_findings'] = findings_by_host.get(flag['source_ip'], 0)
+
+    return data
+
+@app.route('/api/traffic-monitor', methods=['POST'])
+def trigger_traffic_monitor():
+    """
+    Starts a fixed-duration packet capture in the background and
+    returns immediately — the dashboard learns what's happening by
+    polling /api/traffic-status, the same pattern already used for
+    the vulnerability scan. A single blocking request/response was
+    tried first but had a real problem: refreshing the page during
+    the capture destroyed all client-side progress state while the
+    capture kept running unaware on the server, and its eventual
+    results had nowhere to go once the original request was gone.
+    """
+    try:
+        status = load_json(config.SCAN_STATUS_PATH)
+        if status and status.get('running'):
+            return jsonify({
+                'status':  'already_running',
+                'message': 'A vulnerability scan is currently in progress. Please wait for it to finish first.'
+            })
+
+        traffic_status = load_json(config.TRAFFIC_STATUS_PATH)
+        if traffic_status and traffic_status.get('running'):
+            return jsonify({
+                'status':  'already_running',
+                'message': 'A traffic monitor capture is already in progress.'
+            })
+
+        body     = request.get_json(silent=True) or {}
+        duration = body.get('duration', 60)
+        if duration not in (30, 60, 120):
+            duration = 60
+
+        # Written HERE, synchronously, before the background process
+        # is even spawned — not left for that process to report once
+        # it eventually starts. Python startup plus importing scapy
+        # can genuinely take several seconds on a Raspberry Pi, so
+        # waiting for the background process to self-report "running"
+        # created a real race: a poll firing before that happened
+        # would still see the PREVIOUS run's leftover status and
+        # results, wrongly concluding nothing new had started. Since
+        # this request itself writes accurate status immediately,
+        # every poll — even the very first one — sees the truth
+        # right away, with no race to guess a grace period around.
+        started_at = time.time()
+        with open(config.TRAFFIC_STATUS_PATH, 'w') as f:
+            json.dump({
+                'running':    True,
+                'message':    f'Capturing traffic for {duration}s...',
+                'started_at': started_at,
+                'duration':   duration,
+            }, f)
+        try:
+            os.chmod(config.TRAFFIC_STATUS_PATH, 0o666)
+        except Exception:
+            pass
+
+        # Clear any previous results immediately too, so a poll can
+        # never show a stale old capture's outcome for a new one.
+        if os.path.exists(config.TRAFFIC_RESULTS_PATH):
+            os.remove(config.TRAFFIC_RESULTS_PATH)
+
+        subprocess.Popen(
+            ['sudo', config.VENV_PYTHON, config.TRAFFIC_MONITOR_SCRIPT, str(duration)],
+            cwd=config.BASE_DIR
+        )
+        return jsonify({'status': 'started', 'duration': duration})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/stop-traffic-monitor', methods=['POST'])
+def stop_traffic_monitor():
+    try:
+        result = subprocess.run(
+            ['pgrep', '-f', 'traffic_monitor.py'],
+            capture_output=True, text=True
+        )
+        pids = result.stdout.strip().split('\n')
+        for pid in pids:
+            if pid:
+                subprocess.run(['sudo', 'kill', pid])
+
+        # The killed process never gets a chance to write its own
+        # "finished" status or results — this route resets both
+        # directly, same pattern as stop_scan() for the vulnerability
+        # scanner. Results are explicitly overwritten rather than left
+        # untouched, so the dashboard shows a clear "stopped" message
+        # instead of silently displaying stale results from an earlier
+        # completed capture.
+        with open(config.TRAFFIC_STATUS_PATH, 'w') as f:
+            json.dump({'running': False, 'message': '', 'started_at': None, 'duration': None}, f)
+        try:
+            os.chmod(config.TRAFFIC_STATUS_PATH, 0o666)
+        except Exception:
+            pass
+
+        with open(config.TRAFFIC_RESULTS_PATH, 'w') as f:
+            json.dump({'success': False, 'error': 'Capture stopped by user.', 'stopped': True}, f)
+        try:
+            os.chmod(config.TRAFFIC_RESULTS_PATH, 0o666)
+        except Exception:
+            pass
+
+        return jsonify({'status': 'stopped'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/traffic-status')
+def traffic_status_poll():
+    """
+    Polled by the dashboard — reports whatever traffic_monitor.py
+    (running as its own background process) has most recently written.
+    Works correctly regardless of page reloads, since it reads from
+    disk rather than any in-memory request state: a fresh page load
+    mid-capture picks up exactly where things actually stand, and the
+    last completed results stay visible until a new capture overwrites
+    them, rather than only ever being shown once via a single response.
+    """
+    status = load_json(config.TRAFFIC_STATUS_PATH)
+    if not status:
+        status = {'running': False, 'message': '', 'started_at': None, 'duration': None}
+
+    results = load_json(config.TRAFFIC_RESULTS_PATH)
+    if results and results.get('success'):
+        results = correlate_traffic_flags(results)
+
+    return jsonify({
+        'running':    status.get('running', False),
+        'message':    status.get('message', ''),
+        'started_at': status.get('started_at'),
+        'duration':   status.get('duration'),
+        'results':    results,
+    })
 
 def build_findings_csv(analysis, scan_hosts=None):
     """Flatten a scan's findings into CSV rows for spreadsheet use.

@@ -199,6 +199,89 @@
             margin-top: 8px;
         }
 
+        .traffic-monitor-box {
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 8px;
+            padding: 30px 40px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .traffic-monitor-box .traffic-results,
+        .traffic-monitor-box .traffic-flag-card {
+            text-align: left;
+        }
+
+        .traffic-status-line {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #666;
+            min-height: 18px;
+        }
+
+        .traffic-duration-label {
+            margin-top: 8px;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #446644;
+        }
+
+        .traffic-results { margin-top: 16px; }
+
+        .traffic-clean {
+            color: #00ff88;
+            font-size: 0.9rem;
+        }
+
+        .traffic-flag-card {
+            background: #0a0a0a;
+            border: 1px solid #1e1e1e;
+            border-left: 4px solid #ff8800;
+            border-radius: 4px;
+            padding: 14px 18px;
+            margin-bottom: 10px;
+        }
+
+        .traffic-flag-ip { font-weight: bold; color: #ff8800; font-size: 0.95rem; }
+        .traffic-flag-detail { font-size: 0.8rem; color: #888; margin-top: 4px; }
+        .traffic-flag-correlation { font-size: 0.75rem; color: #ff4444; margin-top: 4px; font-style: italic; }
+
+        .traffic-tile-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .traffic-tile {
+            background: #0a0a0a;
+            border: 1px solid #1e1e1e;
+            border-radius: 6px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .traffic-tile:hover { border-color: #446644; }
+        .traffic-tile .v { font-size: 1.1rem; font-weight: bold; color: #888; }
+        .traffic-tile .l { font-size: 0.6rem; color: #555; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+
+        .traffic-tile.active { border-color: #00ff88; background: #00ff8811; }
+        .traffic-tile.active .v { color: #00ff88; }
+
+        .traffic-start-tile { border-color: #00ff88; }
+        .traffic-start-tile .v { color: #00ff88; }
+        .traffic-start-tile:hover { background: #00ff8811; }
+
+        .traffic-tile-disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
         .danger-btn {
             display: inline-block;
             padding: 8px 20px;
@@ -715,6 +798,34 @@
             <div id="scan-status"></div>
         </div>
 
+        <!-- Traffic Monitor -->
+        {% if not viewing_history %}
+        <div class="traffic-monitor-box">
+            <div class="progress-title">⬡ Traffic Monitor</div>
+            <div class="traffic-tile-grid">
+                <div class="traffic-tile" data-duration="30" onclick="selectTrafficDuration(30)">
+                    <div class="v">30s</div><div class="l">Duration</div>
+                </div>
+                <div class="traffic-tile active" data-duration="60" onclick="selectTrafficDuration(60)">
+                    <div class="v">60s</div><div class="l">Duration</div>
+                </div>
+                <div class="traffic-tile" data-duration="120" onclick="selectTrafficDuration(120)">
+                    <div class="v">120s</div><div class="l">Duration</div>
+                </div>
+                <div class="traffic-tile traffic-start-tile" onclick="startTrafficMonitor()" id="traffic-btn">
+                    <div class="v">▶ Start</div><div class="l">Capture</div>
+                </div>
+            </div>
+            <div class="progress-bar-track" id="traffic-progress-track" style="display:none;">
+                <div class="progress-bar-fill" id="traffic-progress-fill"></div>
+            </div>
+            <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
+            <div class="traffic-duration-label" id="traffic-duration-label">Capture length: 60 seconds</div>
+            <div class="traffic-status-line" id="traffic-status"></div>
+            <div class="traffic-results" id="traffic-results"></div>
+        </div>
+        {% endif %}
+
         <!-- System Resources -->
         <p class="section-title">System Resources</p>
         <div class="resource-grid" id="resource-grid">
@@ -819,6 +930,32 @@
                 </label>
             </div>
             <div id="scan-status"></div>
+        </div>
+
+        <!-- Traffic Monitor -->
+        <div class="traffic-monitor-box">
+            <div class="progress-title">⬡ Traffic Monitor</div>
+            <div class="traffic-tile-grid">
+                <div class="traffic-tile" data-duration="30" onclick="selectTrafficDuration(30)">
+                    <div class="v">30s</div><div class="l">Duration</div>
+                </div>
+                <div class="traffic-tile active" data-duration="60" onclick="selectTrafficDuration(60)">
+                    <div class="v">60s</div><div class="l">Duration</div>
+                </div>
+                <div class="traffic-tile" data-duration="120" onclick="selectTrafficDuration(120)">
+                    <div class="v">120s</div><div class="l">Duration</div>
+                </div>
+                <div class="traffic-tile traffic-start-tile" onclick="startTrafficMonitor()" id="traffic-btn">
+                    <div class="v">▶ Start</div><div class="l">Capture</div>
+                </div>
+            </div>
+            <div class="progress-bar-track" id="traffic-progress-track" style="display:none;">
+                <div class="progress-bar-fill" id="traffic-progress-fill"></div>
+            </div>
+            <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
+            <div class="traffic-duration-label" id="traffic-duration-label">Capture length: 60 seconds</div>
+            <div class="traffic-status-line" id="traffic-status"></div>
+            <div class="traffic-results" id="traffic-results"></div>
         </div>
 
         <!-- System Resources -->
@@ -1275,6 +1412,227 @@
     }
 
     initAiToggle();
+
+    // ── Traffic Monitor ──────────────────────────────────────
+    let selectedTrafficDuration = 60;
+    let trafficPollInterval     = null;
+
+    function selectTrafficDuration(seconds) {
+        selectedTrafficDuration = seconds;
+        document.querySelectorAll('[data-duration]').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.duration, 10) === seconds);
+        });
+        const label = document.getElementById('traffic-duration-label');
+        if (label) label.textContent = `Capture length: ${seconds} seconds`;
+        localStorage.setItem('trafficMonitorDuration', seconds);
+    }
+
+    function initTrafficDuration() {
+        const saved = parseInt(localStorage.getItem('trafficMonitorDuration'), 10);
+        if ([30, 60, 120].includes(saved)) {
+            selectTrafficDuration(saved);
+        }
+    }
+
+    function setTrafficCapturingUI(capturing) {
+        const btn     = document.getElementById('traffic-btn');
+        const stopBtn = document.getElementById('traffic-stop-btn');
+        if (btn) {
+            btn.dataset.capturing = capturing ? 'true' : 'false';
+            btn.classList.toggle('traffic-tile-disabled', capturing);
+            const btnLabel = btn.querySelector('.v');
+            if (btnLabel) btnLabel.textContent = capturing ? '⏳ Running' : '▶ Start';
+        }
+        if (stopBtn) stopBtn.style.display = capturing ? 'inline-block' : 'none';
+    }
+
+    function stopTrafficMonitor() {
+        const stopBtn = document.getElementById('traffic-stop-btn');
+        if (stopBtn) {
+            stopBtn.disabled    = true;
+            stopBtn.textContent = 'Stopping...';
+        }
+
+        fetch('/stop-traffic-monitor', { method: 'POST' })
+            .then(r => r.json())
+            .then(() => {
+                stopTrafficPolling();
+                setTrafficCapturingUI(false);
+
+                const track = document.getElementById('traffic-progress-track');
+                if (track) track.style.display = 'none';
+
+                const status = document.getElementById('traffic-status');
+                if (status) status.textContent = 'Capture stopped.';
+
+                const results = document.getElementById('traffic-results');
+                if (results) results.innerHTML = '';
+
+                if (stopBtn) {
+                    stopBtn.disabled    = false;
+                    stopBtn.textContent = '■ Stop Capture';
+                }
+            })
+            .catch(() => {
+                if (stopBtn) {
+                    stopBtn.disabled    = false;
+                    stopBtn.textContent = '■ Stop Capture';
+                }
+            });
+    }
+
+    function startTrafficMonitor() {
+        const btn = document.getElementById('traffic-btn');
+        if (!btn || btn.dataset.capturing === 'true') return;
+
+        const status = document.getElementById('traffic-status');
+        if (status) status.textContent = `Starting a ${selectedTrafficDuration}s capture...`;
+
+        fetch('/api/traffic-monitor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ duration: selectedTrafficDuration })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'already_running') {
+                    if (status) status.textContent = data.message;
+                    return;
+                }
+                if (data.status === 'error') {
+                    if (status) status.textContent = 'Error: ' + data.message;
+                    return;
+                }
+                // status === 'started' — app.py already wrote accurate
+                // status synchronously before responding, so polling
+                // will see the truth immediately. This optimistic
+                // update just avoids a brief flicker waiting on the
+                // first poll's round trip.
+                const results = document.getElementById('traffic-results');
+                if (results) results.innerHTML = '';
+                setTrafficCapturingUI(true);
+                const track = document.getElementById('traffic-progress-track');
+                const fill  = document.getElementById('traffic-progress-fill');
+                if (track) track.style.display = 'block';
+                if (fill)  fill.style.width = '0%';
+                beginTrafficPolling();
+            })
+            .catch(() => {
+                if (status) status.textContent = 'Could not contact scanner.';
+            });
+    }
+
+    function beginTrafficPolling() {
+        if (trafficPollInterval) return;
+        pollTrafficStatus();
+        trafficPollInterval = setInterval(pollTrafficStatus, 2000);
+    }
+
+    function stopTrafficPolling() {
+        if (trafficPollInterval) {
+            clearInterval(trafficPollInterval);
+            trafficPollInterval = null;
+        }
+    }
+
+    function pollTrafficStatus() {
+        fetch('/api/traffic-status')
+            .then(r => r.json())
+            .then(data => {
+                const status = document.getElementById('traffic-status');
+                const track  = document.getElementById('traffic-progress-track');
+                const fill   = document.getElementById('traffic-progress-fill');
+
+                if (data.running) {
+                    setTrafficCapturingUI(true);
+                    if (track) track.style.display = 'block';
+                    // Progress is computed from the server-recorded
+                    // start time and duration, not a client-side timer
+                    // — this is what lets it correctly resume at the
+                    // right position after a page reload, rather than
+                    // always restarting from 0%.
+                    if (fill && data.started_at && data.duration) {
+                        const elapsedMs = (Date.now() / 1000 - data.started_at) * 1000;
+                        const pct = Math.min(100, (elapsedMs / (data.duration * 1000)) * 100);
+                        fill.style.width = pct + '%';
+                    }
+                    if (status) status.textContent = data.message || 'Capturing...';
+                    if (!trafficPollInterval) {
+                        trafficPollInterval = setInterval(pollTrafficStatus, 2000);
+                    }
+                    return;
+                }
+
+                // Not running — either a capture just finished, or
+                // none has ever run yet. app.py's trigger route writes
+                // the running status synchronously before this script
+                // even starts, so there's no race to guard against
+                // here anymore — a "not running" result can always be
+                // trusted immediately.
+                stopTrafficPolling();
+                setTrafficCapturingUI(false);
+                if (fill)  fill.style.width = '100%';
+                if (track) setTimeout(() => { track.style.display = 'none'; }, 500);
+
+                if (data.results && data.results.success) {
+                    if (status) {
+                        status.textContent = `Capture complete — ${data.results.duration_seconds}s` +
+                            (data.results.own_ip ? ` — this device: ${data.results.own_ip}` : '') +
+                            ` — ${data.results.total_packets} packet(s) seen`;
+                    }
+                    renderTrafficResults(data.results);
+                } else if (data.results && data.results.stopped) {
+                    // A user-initiated stop isn't really an "error" —
+                    // worded and styled calmer than a genuine failure.
+                    if (status) status.textContent = 'Last capture was stopped before it finished.';
+                } else if (data.results && !data.results.success) {
+                    if (status) status.textContent = 'Error: ' + (data.results.error || 'Capture failed.');
+                }
+            })
+            .catch(() => {
+                stopTrafficPolling();
+                setTrafficCapturingUI(false);
+            });
+    }
+
+    function renderTrafficResults(data) {
+        const results = document.getElementById('traffic-results');
+        if (!results) return;
+
+        const portFlags = data.port_scan_flags || [];
+        const arpFlags  = data.arp_sweep_flags || [];
+
+        if (portFlags.length === 0 && arpFlags.length === 0) {
+            results.innerHTML = '<div class="traffic-clean">✓ No suspicious reconnaissance activity detected.</div>';
+            return;
+        }
+
+        let html = '';
+        portFlags.forEach(flag => {
+            html += `
+                <div class="traffic-flag-card">
+                    <div class="traffic-flag-ip">⚠ Possible Port Scan: ${flag.source_ip}</div>
+                    <div class="traffic-flag-detail">Touched ${flag.distinct_ports} distinct ports on this device in this window</div>
+                    ${flag.known_findings > 0 ? `<div class="traffic-flag-correlation">This device also has ${flag.known_findings} known finding(s) from the last scan.</div>` : ''}
+                </div>`;
+        });
+        arpFlags.forEach(flag => {
+            html += `
+                <div class="traffic-flag-card">
+                    <div class="traffic-flag-ip">⚠ Possible Network Sweep: ${flag.source_ip}</div>
+                    <div class="traffic-flag-detail">ARP-queried ${flag.distinct_targets} distinct addresses in this window</div>
+                    ${flag.known_findings > 0 ? `<div class="traffic-flag-correlation">This device also has ${flag.known_findings} known finding(s) from the last scan.</div>` : ''}
+                </div>`;
+        });
+
+        results.innerHTML = html;
+    }
+
+    // Check on every page load whether a capture is already running
+    // (e.g. this page was reloaded mid-capture) so it can correctly
+    // resume tracking it, or show the last completed results.
+    initTrafficDuration();
+    pollTrafficStatus();
 
     // ── System resource monitoring ──────────────────────────
     function classifyValue(percent, warnAt, critAt) {
