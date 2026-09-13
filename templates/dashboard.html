@@ -220,14 +220,6 @@
             min-height: 18px;
         }
 
-        .traffic-duration-label {
-            margin-top: 8px;
-            font-size: 0.7rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: #446644;
-        }
-
         .traffic-results { margin-top: 16px; }
 
         .traffic-clean {
@@ -263,6 +255,10 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.2s;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .traffic-tile:hover { border-color: #446644; }
@@ -809,23 +805,22 @@
         <div class="traffic-monitor-box">
             <div class="traffic-tile-grid">
                 <div class="traffic-tile" data-duration="30" onclick="selectTrafficDuration(30)">
-                    <div class="v">30s</div><div class="l">Duration</div>
+                    <div class="v">30s</div>
                 </div>
                 <div class="traffic-tile active" data-duration="60" onclick="selectTrafficDuration(60)">
-                    <div class="v">60s</div><div class="l">Duration</div>
+                    <div class="v">60s</div>
                 </div>
                 <div class="traffic-tile" data-duration="120" onclick="selectTrafficDuration(120)">
-                    <div class="v">120s</div><div class="l">Duration</div>
+                    <div class="v">120s</div>
                 </div>
                 <div class="traffic-tile traffic-start-tile" onclick="startTrafficMonitor()" id="traffic-btn">
-                    <div class="v">▶ Start</div><div class="l">Capture</div>
+                    <div class="v">▶ Start</div><div class="l">Monitor</div>
                 </div>
             </div>
             <div class="progress-bar-track" id="traffic-progress-track" style="display:none;">
                 <div class="progress-bar-fill" id="traffic-progress-fill"></div>
             </div>
             <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
-            <div class="traffic-duration-label" id="traffic-duration-label">Capture length: 60 seconds</div>
             <div class="traffic-status-line" id="traffic-status"></div>
             <div class="traffic-results" id="traffic-results"></div>
         </div>
@@ -942,23 +937,22 @@
         <div class="traffic-monitor-box">
             <div class="traffic-tile-grid">
                 <div class="traffic-tile" data-duration="30" onclick="selectTrafficDuration(30)">
-                    <div class="v">30s</div><div class="l">Duration</div>
+                    <div class="v">30s</div>
                 </div>
                 <div class="traffic-tile active" data-duration="60" onclick="selectTrafficDuration(60)">
-                    <div class="v">60s</div><div class="l">Duration</div>
+                    <div class="v">60s</div>
                 </div>
                 <div class="traffic-tile" data-duration="120" onclick="selectTrafficDuration(120)">
-                    <div class="v">120s</div><div class="l">Duration</div>
+                    <div class="v">120s</div>
                 </div>
                 <div class="traffic-tile traffic-start-tile" onclick="startTrafficMonitor()" id="traffic-btn">
-                    <div class="v">▶ Start</div><div class="l">Capture</div>
+                    <div class="v">▶ Start</div><div class="l">Monitor</div>
                 </div>
             </div>
             <div class="progress-bar-track" id="traffic-progress-track" style="display:none;">
                 <div class="progress-bar-fill" id="traffic-progress-fill"></div>
             </div>
             <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
-            <div class="traffic-duration-label" id="traffic-duration-label">Capture length: 60 seconds</div>
             <div class="traffic-status-line" id="traffic-status"></div>
             <div class="traffic-results" id="traffic-results"></div>
         </div>
@@ -1427,8 +1421,6 @@
         document.querySelectorAll('[data-duration]').forEach(btn => {
             btn.classList.toggle('active', parseInt(btn.dataset.duration, 10) === seconds);
         });
-        const label = document.getElementById('traffic-duration-label');
-        if (label) label.textContent = `Capture length: ${seconds} seconds`;
         localStorage.setItem('trafficMonitorDuration', seconds);
     }
 
