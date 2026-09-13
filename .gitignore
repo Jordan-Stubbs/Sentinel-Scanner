@@ -21,3 +21,4 @@ cve_cache.json
 *.swp
 traffic_status.json
 traffic_results.json
+cve_cache_update.log
