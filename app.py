@@ -297,6 +297,35 @@ def trigger_scan():
         if not generate_ai_report:
             cmd.append('--skip-ai-report')
 
+        # Written HERE, synchronously, before main.py is even spawned —
+        # not left for that process to report once it gets around to
+        # it. main.py needs to finish its own Python startup and
+        # imports (analyser, llm_reporter, cve_lookup, etc.) before it
+        # reaches its own first status write, which can take long
+        # enough that a poll firing immediately after triggering could
+        # still see the PREVIOUS scan's leftover 'complete' status —
+        # causing the frontend to think the old scan just finished
+        # (flashing the bar, then reloading the page) while the real
+        # new scan silently kept running in the background. Same root
+        # cause already found and fixed for the traffic monitor;
+        # applying the same fix here closes it for good.
+        with open(config.SCAN_STATUS_PATH, 'w') as f:
+            json.dump({
+                'stage':   'starting',
+                'message': 'Initialising scanner...',
+                'percent': 5,
+                'running': True,
+                # Known immediately, since it's parsed from the request
+                # just above — no need to wait for main.py to take over
+                # before the dashboard can show whether this scan will
+                # skip the AI report.
+                'ai_report_enabled': generate_ai_report,
+            }, f)
+        try:
+            os.chmod(config.SCAN_STATUS_PATH, 0o666)
+        except Exception:
+            pass
+
         subprocess.Popen(cmd, cwd=config.BASE_DIR)
         return jsonify({'status': 'started'})
     except Exception as e:

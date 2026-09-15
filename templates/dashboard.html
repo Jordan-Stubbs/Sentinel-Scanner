@@ -1096,7 +1096,16 @@
                 fill.classList.remove('error');
                 msg.classList.remove('error');
                 fill.style.width = data.percent + '%';
-                msg.textContent  = data.message;
+                // The stage indicators (①-⑥) already show which step is
+                // active — this routine per-stage text ("Scanning
+                // network...", "Analysing findings...", etc.) was
+                // redundant with that, so it's cleared here rather than
+                // shown. The 'error' state (handled above, returns
+                // before reaching this line) and 'complete' (overwrites
+                // this right below) both still show their own message,
+                // since those convey something the stage indicators
+                // don't.
+                msg.textContent  = '';
                 updateStages(data.stage);
 
                 // Relabel the AI Report stage and show an indicator when
