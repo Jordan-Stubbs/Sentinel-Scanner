@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>What We Check — Network Vulnerability Scanner</title>
+    <title>Vulnerability Checks — Network Vulnerability Scanner</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -55,7 +55,7 @@
         .intro p:last-child { margin-bottom: 0; }
         .intro strong { color: #ccc; }
 
-        .stat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 30px; }
+        .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 30px; }
         .stat-tile { background: #111; border: 1px solid #1e1e1e; border-radius: 6px; padding: 14px 8px; text-align: center; }
         .stat-tile .v { font-size: 1.4rem; font-weight: bold; font-variant-numeric: tabular-nums; }
         .stat-tile .l { font-size: 0.62rem; color: #555; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
@@ -64,6 +64,7 @@
         .stat-tile.medium .v   { color: #ffcc00; }
         .stat-tile.low .v      { color: #00ff88; }
         .stat-tile.total .v    { color: #e0e0e0; }
+        .stat-tile.info .v     { color: #66aaff; }
 
         .section-title {
             font-size: 0.85rem;
@@ -111,24 +112,24 @@
 
 <header>
     <h1>⬡ Network Vulnerability Scanner</h1>
-    <span>{{ hostname }} — What We Check</span>
+    <span>{{ hostname }} — Vulnerability Checks</span>
 </header>
 
 <div class="container">
     <a href="/" class="back-link">← Back to Dashboard</a>
 
     <div class="intro">
-        <h2>How this scanner decides what's a finding</h2>
+        <h2>Two Layers of Detection</h2>
         <p>
-            Every scan runs two layers of checks. The <strong>{{ rules | length }} rules below</strong>
-            are fixed, hand-written checks — each one looks for a specific port and service known to carry
-            a real risk if it's reachable on your network.
+            The <strong>{{ rules | length }} checks below</strong> are fixed, hand-written rules —
+            each one looks for a specific port and service with a known, real-world risk if it's
+            reachable on your network.
         </p>
         <p>
-            On top of that, every detected service is also cross-referenced against the
-            <strong>National Vulnerability Database (NVD)</strong> for known CVEs matching that specific
-            product and version — a second, open-ended layer that isn't a fixed list, so it stays current
-            as new vulnerabilities are published without needing this rule set to be updated by hand.
+            Every detected service is also checked against the <strong>National Vulnerability
+            Database (NVD)</strong> for CVEs matching that exact product and version. This second
+            layer isn't a fixed list — it stays current automatically as new vulnerabilities are
+            published, without this rule set ever needing to be updated by hand.
         </p>
     </div>
 
@@ -138,6 +139,7 @@
         <div class="stat-tile high"><div class="v">{{ rules | selectattr('severity', 'equalto', 'high') | list | length }}</div><div class="l">High</div></div>
         <div class="stat-tile medium"><div class="v">{{ rules | selectattr('severity', 'equalto', 'medium') | list | length }}</div><div class="l">Medium</div></div>
         <div class="stat-tile low"><div class="v">{{ rules | selectattr('severity', 'equalto', 'low') | list | length }}</div><div class="l">Low</div></div>
+        <div class="stat-tile info"><div class="v">{{ cve_cache_updated if cve_cache_updated else '—' }}</div><div class="l">CVE Cache Updated</div></div>
     </div>
 
     {% for sev in ['critical', 'high', 'medium', 'low'] %}

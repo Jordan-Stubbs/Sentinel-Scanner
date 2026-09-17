@@ -206,8 +206,15 @@ def view_checks():
     maintained description, so it can never drift out of sync with
     what the scanner actually checks for.
     """
+    cve_cache_updated = None
+    if os.path.exists(config.CVE_CACHE_PATH):
+        cve_cache_updated = datetime.fromtimestamp(
+            os.path.getmtime(config.CVE_CACHE_PATH)
+        ).strftime('%Y-%m-%d')
+
     return render_template('checks.html',
                            rules=RULES,
+                           cve_cache_updated=cve_cache_updated,
                            hostname=get_hostname())
 
 @app.route('/api/history-trend')
