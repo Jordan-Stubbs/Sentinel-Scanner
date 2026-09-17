@@ -12,9 +12,12 @@ Ollama) rather than sending anything to the cloud.
 - **Network scanning** — `nmap`-based scan of the local subnet:
   hosts, open ports, service/product detection, OS fingerprinting,
   and MAC vendor lookup
-- **19 vulnerability rules** across remote access, file transfer,
-  databases, network services, and IoT/embedded categories, producing
-  a 0–100 security score
+- **40 vulnerability rules** spanning remote access, databases, file
+  sharing, industrial/IoT, smart-home, and self-hosted media services,
+  contributing to an overall 0–100 security score — see the
+  dashboard's own "Vulnerability Checks" page for the full,
+  always-current list, produced from the same rules the scanner
+  actually runs
 - **CVE cross-referencing** against the National Vulnerability
   Database, with an offline cache fallback for when there's no
   internet — matched against the specific product `nmap` actually
@@ -34,7 +37,7 @@ Ollama) rather than sending anything to the cloud.
 - **Exports** — PDF, CSV, and JSON, all including full findings,
   device data, and the discovered-hosts inventory
 - **Dashboard** protected with HTTP Basic Auth, with live CPU/RAM/
-  temperature monitoring
+  temperature/uptime monitoring
 
 ## Requirements
 
