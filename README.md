@@ -1,11 +1,12 @@
-# Portable Network Vulnerability Scanner
+# Sentinel
 
-A self-contained network vulnerability assessment tool built for the
-Raspberry Pi 4 (also works on other Debian-based Linux machines with
-enough RAM). Scans your local network, cross-references findings
-against known CVEs, and generates a plain-English AI security report
-— all fully offline-capable, using a local LLM (Phi-3 Mini via
-Ollama) rather than sending anything to the cloud.
+**A portable network vulnerability scanner and SOC-style monitoring
+tool built for the Raspberry Pi 4** (also works on other Debian-based
+Linux machines with enough RAM). Scans your local network,
+cross-references findings against known CVEs, and generates a
+plain-English AI security report — all fully offline-capable, using a
+local LLM (Phi-3 Mini via Ollama) rather than sending anything to the
+cloud.
 
 ## Features
 

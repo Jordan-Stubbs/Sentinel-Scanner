@@ -29,7 +29,7 @@ def check_auth(username, password):
 
 def authenticate():
     return Response(
-        'Authentication required to access the Network Vulnerability Scanner.',
+        'Authentication required to access Sentinel.',
         401,
         {'WWW-Authenticate': 'Basic realm="Scanner Dashboard"'}
     )

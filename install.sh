@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# install.sh — Portable Network Vulnerability Scanner installer
+# install.sh — Sentinel installer
 #
 # Detects its own install location and the current user automatically
 # (thanks to config.py, nothing in the Python codebase assumes a
@@ -124,7 +124,7 @@ echo ""
 log "Setting up the dashboard systemd service..."
 sudo tee /etc/systemd/system/scanner.service > /dev/null <<EOF
 [Unit]
-Description=Network Vulnerability Scanner Dashboard
+Description=Sentinel Dashboard
 After=network.target
 
 [Service]
@@ -260,7 +260,7 @@ if [ -n "$CRON_SCHEDULE" ]; then
 
     CRON_FILE="/etc/cron.d/scanner-cve-cache"
     sudo tee "$CRON_FILE" > /dev/null <<CRONEOF
-# Automatic offline CVE cache refresh for the Network Vulnerability Scanner
+# Automatic offline CVE cache refresh for Sentinel
 # Schedule: $CRON_DESCRIPTION (set during install)
 # Runs as $INSTALL_USER (not root) so cve_cache.json's ownership stays
 # consistent with the rest of the project's files.

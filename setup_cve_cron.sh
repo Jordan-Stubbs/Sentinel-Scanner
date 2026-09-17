@@ -100,7 +100,7 @@ esac
 
 if [ -n "$CRON_SCHEDULE" ]; then
     sudo tee "$CRON_FILE" > /dev/null <<EOF
-# Automatic offline CVE cache refresh for the Network Vulnerability Scanner
+# Automatic offline CVE cache refresh for Sentinel
 # Schedule: $DESCRIPTION (set via setup_cve_cron.sh)
 # Runs as $INSTALL_USER (not root) so cve_cache.json's ownership stays
 # consistent with the rest of the project's files.
