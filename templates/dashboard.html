@@ -76,6 +76,20 @@
             margin-bottom: 14px;
         }
 
+        .traffic-countdown {
+            width: fit-content;
+            margin: 0 auto 14px;
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 999px;
+            padding: 5px 16px;
+            font-size: 0.78rem;
+            font-weight: bold;
+            color: #00ff88;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
         .progress-bar-fill {
             height: 100%;
             background: #00ff88;
@@ -771,7 +785,7 @@
 <body>
 
 <header>
-    <h1>⬡ Sentinel</h1>
+    <h1>Sentinel</h1>
     <div class="header-right">
         <a href="/checks" class="header-link">Vulnerability Checks</a>
         <span>{{ hostname }} — Local Network Audit</span>
@@ -794,7 +808,7 @@
 
     <!-- Scan Progress -->
     <div class="progress-overlay" id="progress-overlay">
-        <div class="progress-title">⬡ Scan In Progress</div>
+        <div class="progress-title">Scan In Progress</div>
         <div class="progress-bar-track">
             <div class="progress-bar-fill" id="progress-fill"></div>
         </div>
@@ -927,9 +941,11 @@
                     <div class="v">▶ Start</div><div class="l">Monitor</div>
                 </div>
             </div>
+            <div class="progress-title" id="monitor-in-progress-title" style="display:none;">Monitor In Progress</div>
             <div class="progress-bar-track" id="traffic-progress-track" style="display:none;">
                 <div class="progress-bar-fill" id="traffic-progress-fill"></div>
             </div>
+            <div class="traffic-countdown" id="traffic-countdown" style="display:none;"></div>
             <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
             <div class="traffic-status-line" id="traffic-status"></div>
             <div class="error-banner" id="traffic-error-banner" style="display:none;">
@@ -1105,9 +1121,11 @@
                     <div class="v">▶ Start</div><div class="l">Monitor</div>
                 </div>
             </div>
+            <div class="progress-title" id="monitor-in-progress-title" style="display:none;">Monitor In Progress</div>
             <div class="progress-bar-track" id="traffic-progress-track" style="display:none;">
                 <div class="progress-bar-fill" id="traffic-progress-fill"></div>
             </div>
+            <div class="traffic-countdown" id="traffic-countdown" style="display:none;"></div>
             <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
             <div class="traffic-status-line" id="traffic-status"></div>
             <div class="error-banner" id="traffic-error-banner" style="display:none;">
@@ -1334,7 +1352,7 @@
                     if (stageReportingEl) stageReportingEl.style.display = 'none';
                     if (stageSavingEl)    stageSavingEl.textContent   = '④ Saving';
                     if (stageCompleteEl)  stageCompleteEl.textContent = '⑤ Complete';
-                    if (aiIndicator) aiIndicator.textContent = '⚠ AI report generation disabled for this scan';
+                    if (aiIndicator) aiIndicator.textContent = 'AI report generation disabled for this scan';
                 } else {
                     if (stageReportingEl) stageReportingEl.style.display = '';
                     if (stageSavingEl)    stageSavingEl.textContent   = '⑤ Saving';
@@ -1376,7 +1394,7 @@
         const generateAiReport = aiToggle ? aiToggle.checked : true;
 
         btn.disabled    = true;
-        btn.textContent = '⏳ Starting...';
+        btn.textContent = 'Starting...';
         if (status) status.textContent = '';
         // scan-error-banner lives inside #progress-overlay and is only
         // for a scan that genuinely failed mid-progress (set by
@@ -1701,13 +1719,15 @@
     function setTrafficCapturingUI(capturing) {
         const btn     = document.getElementById('traffic-btn');
         const stopBtn = document.getElementById('traffic-stop-btn');
+        const inProgressTitle = document.getElementById('monitor-in-progress-title');
         if (btn) {
             btn.dataset.capturing = capturing ? 'true' : 'false';
             btn.classList.toggle('traffic-tile-disabled', capturing);
             const btnLabel = btn.querySelector('.v');
-            if (btnLabel) btnLabel.textContent = capturing ? '⏳ Running' : '▶ Start';
+            if (btnLabel) btnLabel.textContent = capturing ? 'Running' : '▶ Start';
         }
         if (stopBtn) stopBtn.style.display = capturing ? 'inline-block' : 'none';
+        if (inProgressTitle) inProgressTitle.style.display = capturing ? 'block' : 'none';
     }
 
     function stopTrafficMonitor() {
@@ -1725,6 +1745,8 @@
 
                 const track = document.getElementById('traffic-progress-track');
                 if (track) track.style.display = 'none';
+                const countdownStop = document.getElementById('traffic-countdown');
+                if (countdownStop) countdownStop.style.display = 'none';
 
                 const status = document.getElementById('traffic-status');
                 const warnBanner = document.getElementById('traffic-warning-banner');
@@ -1839,10 +1861,27 @@
                     // — this is what lets it correctly resume at the
                     // right position after a page reload, rather than
                     // always restarting from 0%.
+                    const countdown = document.getElementById('traffic-countdown');
                     if (fill && data.started_at && data.duration) {
-                        const elapsedMs = (Date.now() / 1000 - data.started_at) * 1000;
+                        // Clamped to 0 — started_at comes from the Pi's
+                        // clock, Date.now() from the browser's. Tiny
+                        // differences between the two can make this
+                        // compute as slightly negative right at the
+                        // start, which without clamping would push the
+                        // countdown below to round up one extra second
+                        // (e.g. showing 61s for a 60s capture).
+                        const elapsedMs = Math.max(0, (Date.now() / 1000 - data.started_at) * 1000);
                         const pct = Math.min(100, (elapsedMs / (data.duration * 1000)) * 100);
                         fill.style.width = pct + '%';
+
+                        // A fixed, known duration is exactly what the
+                        // vulnerability scan doesn't have — worth
+                        // showing here since we genuinely can.
+                        const remaining = Math.max(0, Math.ceil(data.duration - (elapsedMs / 1000)));
+                        if (countdown) {
+                            countdown.style.display = 'block';
+                            countdown.textContent = `${remaining}s Remaining`;
+                        }
                     }
                     if (!trafficPollInterval) {
                         trafficPollInterval = setInterval(pollTrafficStatus, 2000);
@@ -1860,6 +1899,8 @@
                 setTrafficCapturingUI(false);
                 if (fill)  fill.style.width = '100%';
                 if (track) setTimeout(() => { track.style.display = 'none'; }, 500);
+                const countdownDone = document.getElementById('traffic-countdown');
+                if (countdownDone) countdownDone.style.display = 'none';
 
                 const statGrid  = document.getElementById('traffic-stat-grid');
                 const statDur   = document.getElementById('stat-duration');
