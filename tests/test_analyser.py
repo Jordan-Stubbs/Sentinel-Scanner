@@ -131,17 +131,28 @@ class TestSeverityCounts(unittest.TestCase):
 class TestAllRulesFireCorrectly(unittest.TestCase):
     """
     Data-driven coverage of every rule in analyser.RULES — loops over
-    the actual rule list rather than hardcoding 19 separate cases, so
-    this stays self-updating if rules are ever added, removed, or
-    changed. Confirms each rule fires on its own defined port/protocol
-    with the correct rule_id and severity, and nothing else.
+    the actual rule list rather than hardcoding each rule as a
+    separate case, so this stays self-updating if rules are ever
+    added, removed, or changed. Confirms each rule fires on its own
+    defined port/protocol with the correct rule_id and severity, and
+    nothing else.
     """
 
-    def test_rule_count_is_19(self):
+    def test_rule_count_is_40(self):
         # Regression guard — catches an accidental rule deletion/addition
         # going unnoticed. Update this number deliberately if the rule
-        # set genuinely changes size.
-        self.assertEqual(len(RULES), 19)
+        # set genuinely changes size. (19 original rules + 10 added
+        # 2026-09-16: Elasticsearch/Kibana, Docker API, NFS, rsync,
+        # RTSP/IP Camera, CouchDB, RabbitMQ, Modbus, WinRM, LDAP.
+        # + 1 added 2026-09-17: split the old combined SIP rule into
+        # separate plain (5060) and TLS (5061) entries with accurate,
+        # distinct wording for each.
+        # + 6 added 2026-09-17: home-network-specific batch — Jellyfin,
+        # CUPS/IPP, Home Assistant, Chromecast/Cast, Plex, Portainer.
+        # + 4 added 2026-09-17: low-severity batch — Finger, Ident,
+        # Echo, and Minecraft. This is treated as the practical floor
+        # of the hand-written rule set going forward.)
+        self.assertEqual(len(RULES), 40)
 
     def test_no_duplicate_rule_ids(self):
         ids = [rule['id'] for rule in RULES]

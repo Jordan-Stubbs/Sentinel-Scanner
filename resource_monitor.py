@@ -115,6 +115,33 @@ def read_ollama_status():
         return {'loaded': False}
 
 
+def read_uptime():
+    """Read system uptime from /proc/uptime, returned as a short
+    human-readable string (e.g. '3d 4h', '5h 23m', '12m'). Directly
+    motivated by real debugging: this was the first diagnostic check
+    when tracking down the ollama-preload permission bug — a boot-
+    time service that had silently failed only became suspicious once
+    it was clear the Pi had recently rebooted. Surfacing this on the
+    dashboard itself saves an SSH round-trip for that exact class of
+    "did something break at boot" question."""
+    try:
+        with open('/proc/uptime') as f:
+            total_seconds = float(f.readline().split()[0])
+
+        days, remainder = divmod(int(total_seconds), 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        if days > 0:
+            return f'{days}d {hours}h'
+        elif hours > 0:
+            return f'{hours}h {minutes}m'
+        else:
+            return f'{minutes}m'
+    except Exception:
+        return None
+
+
 def _read_cpu_totals():
     with open('/proc/stat') as f:
         parts = f.readline().split()
@@ -154,15 +181,17 @@ def sample_cpu_percent(interval=1.0):
 
 def take_snapshot(cpu_sample_interval=1.0):
     """
-    A full point-in-time resource snapshot: CPU%, RAM, CPU temp, and
-    Ollama model status. Blocks for cpu_sample_interval seconds while
-    sampling CPU usage — negligible overhead against a multi-minute
-    scan, but real, so callers doing this several times per scan
-    should be aware of the small cumulative cost.
+    A full point-in-time resource snapshot: CPU%, RAM, CPU temp,
+    Ollama model status, and system uptime. Blocks for
+    cpu_sample_interval seconds while sampling CPU usage — negligible
+    overhead against a multi-minute scan, but real, so callers doing
+    this several times per scan should be aware of the small
+    cumulative cost.
     """
     return {
         'cpu_percent': sample_cpu_percent(cpu_sample_interval),
         'memory':      read_memory(),
         'cpu_temp':    read_cpu_temp(),
         'ollama':      read_ollama_status(),
+        'uptime':      read_uptime(),
     }

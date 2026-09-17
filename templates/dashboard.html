@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Network Vulnerability Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             background: #0a0a0a;
             color: #e0e0e0;
             min-height: 100vh;
@@ -21,10 +24,25 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         header h1 { color: #00ff88; font-size: 1.4rem; letter-spacing: 2px; text-transform: uppercase; }
         header span { color: #666; font-size: 0.85rem; }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .header-link {
+            color: #00ff88;
+            text-decoration: none;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border: 1px solid #00ff88;
+            border-radius: 4px;
+            padding: 6px 14px;
+        }
+        .header-link:hover { background: #00ff8811; }
 
         .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
 
@@ -71,6 +89,36 @@
         .progress-message { font-size: 0.8rem; color: #555; }
         .progress-message.error { color: #ff4444; font-weight: bold; }
 
+        .error-banner {
+            background: #2a0f0f;
+            border: 1px solid #ff4444;
+            border-radius: 6px;
+            padding: 18px 24px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 14px;
+        }
+        .error-banner .icon { font-size: 1.6rem; color: #ff4444; flex-shrink: 0; }
+        .error-banner .head { color: #ff4444; font-weight: 700; font-size: 0.95rem; }
+        .error-banner .detail { color: #cc8888; font-size: 0.8rem; margin-top: 4px; }
+
+        .warning-banner {
+            background: #2a2410;
+            border: 1px solid #ffcc00;
+            border-radius: 6px;
+            padding: 18px 24px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-top: 14px;
+        }
+        .warning-banner .icon { font-size: 1.6rem; color: #ffcc00; flex-shrink: 0; }
+        .warning-banner .head { color: #ffcc00; font-weight: 700; font-size: 0.95rem; }
+        .warning-banner .detail { color: #ccb266; font-size: 0.8rem; margin-top: 4px; }
+
         .progress-stages {
             display: flex;
             justify-content: space-between;
@@ -112,7 +160,7 @@
         .score-card.moderate::before { background: #ffcc00; }
         .score-card.good::before     { background: #00ff88; }
 
-        .score-number { font-size: 5rem; font-weight: bold; line-height: 1; margin-bottom: 10px; }
+        .score-number { font-size: 5rem; font-weight: bold; line-height: 1; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
         .score-card.critical .score-number { color: #ff4444; }
         .score-card.poor .score-number     { color: #ff8800; }
         .score-card.moderate .score-number { color: #ffcc00; }
@@ -128,7 +176,7 @@
             background: transparent;
             border: 2px solid #00ff88;
             color: #00ff88;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.9rem;
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -147,7 +195,7 @@
             background: transparent;
             border: 2px solid #ff4444;
             color: #ff4444;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.9rem;
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -167,7 +215,7 @@
             padding: 12px 20px;
             border: 2px solid #333;
             border-radius: 4px;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.85rem;
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -217,10 +265,32 @@
             margin-top: 10px;
             font-size: 0.8rem;
             color: #666;
-            min-height: 18px;
         }
+        .traffic-status-line:empty { margin-top: 0; }
 
         .traffic-results { margin-top: 16px; }
+        .traffic-results:empty { margin-top: 0; }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .stat-tile {
+            background: #0a0a0a;
+            border: 1px solid #1e1e1e;
+            border-radius: 6px;
+            padding: 14px 10px;
+            text-align: center;
+        }
+
+        .stat-tile .v { font-size: 1.3rem; font-weight: bold; color: #00ff88; }
+        .stat-tile .l { font-size: 0.6rem; color: #555; letter-spacing: 1px; margin-top: 4px; text-transform: uppercase; }
+
+        .stat-tile.alert .v { color: #ff8800; }
+        .stat-tile.clean .v { color: #00ff88; }
 
         .traffic-clean {
             color: #00ff88;
@@ -231,7 +301,7 @@
             background: #0a0a0a;
             border: 1px solid #1e1e1e;
             border-left: 4px solid #ff8800;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 14px 18px;
             margin-bottom: 10px;
         }
@@ -284,7 +354,7 @@
             background: transparent;
             border: 1px solid #ff4444;
             color: #ff4444;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.75rem;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -296,11 +366,18 @@
         .danger-btn:hover { background: #ff4444; color: #0a0a0a; }
 
         /* Summary tiles */
+        .top-grid {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+            align-items: start;
+        }
+
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            margin-bottom: 24px;
         }
 
         .summary-tile {
@@ -311,10 +388,12 @@
             text-align: center;
         }
 
-        .tile-value { font-size: 1.6rem; font-weight: bold; color: #00ff88; }
+        .summary-tile.span-full { grid-column: 1 / -1; }
+
+        .tile-value { font-size: 1.6rem; font-weight: bold; color: #00ff88; font-variant-numeric: tabular-nums; }
         .tile-value.red    { color: #ff4444; }
         .tile-value.orange { color: #ff8800; }
-        .tile-value.small  { font-size: 1rem; }
+        .tile-value.dim    { color: #4dbf8a; }
         .tile-label { font-size: 0.7rem; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
 
         /* CVE badge on findings */
@@ -344,7 +423,7 @@
             background: transparent;
             border: 1px solid #333;
             color: #888;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.7rem;
             letter-spacing: 1px;
             text-transform: uppercase;
@@ -360,7 +439,7 @@
             background: #0a0a0a;
             border: 1px solid #222;
             color: #e0e0e0;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.8rem;
             padding: 6px 12px;
             border-radius: 4px;
@@ -372,7 +451,7 @@
             background: #111;
             border: 1px solid #1e1e1e;
             border-left: 4px solid;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 18px 20px;
         }
 
@@ -384,7 +463,7 @@
         .finding-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .finding-name { font-weight: bold; color: #e0e0e0; font-size: 0.95rem; }
 
-        .severity-badge { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; padding: 3px 10px; border-radius: 3px; font-weight: bold; }
+        .severity-badge { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; padding: 3px 12px; border-radius: 999px; font-weight: bold; }
         .severity-badge.critical { background: #ff444422; color: #ff4444; }
         .severity-badge.high     { background: #ff880022; color: #ff8800; }
         .severity-badge.medium   { background: #ffcc0022; color: #ffcc00; }
@@ -472,7 +551,7 @@
             background: #0a0a0a;
             border: 1px solid #222;
             color: #e0e0e0;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 0.8rem;
             padding: 6px 10px;
             border-radius: 4px;
@@ -607,7 +686,7 @@
         /* System resources tile row */
         .resource-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
             margin-bottom: 24px;
         }
@@ -622,8 +701,9 @@
         @media (max-width: 900px) {
             .container { margin: 24px auto; padding: 0 16px; }
             header { padding: 16px 20px; }
+            .top-grid { grid-template-columns: 1fr; }
             .summary-grid { grid-template-columns: repeat(3, 1fr); }
-            .resource-grid { grid-template-columns: repeat(3, 1fr); }
+            .resource-grid { grid-template-columns: repeat(2, 1fr); }
             .score-number { font-size: 3.6rem; }
         }
 
@@ -637,6 +717,8 @@
             }
             header h1 { font-size: 1.1rem; letter-spacing: 1px; }
             header span { font-size: 0.75rem; }
+            .header-right { flex-wrap: wrap; gap: 10px; }
+            .header-link { font-size: 0.7rem; padding: 5px 10px; }
 
             .container { margin: 16px auto; padding: 0 12px; }
 
@@ -656,6 +738,8 @@
             .traffic-monitor-box { padding: 20px 18px; }
             .traffic-tile-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
             .traffic-tile { padding: 12px 8px; }
+            .stat-tile { padding: 12px 6px; }
+            .stat-tile .v { font-size: 1.1rem; }
             .traffic-flag-card { padding: 12px 14px; }
 
             .score-card { padding: 26px 18px; }
@@ -688,7 +772,10 @@
 
 <header>
     <h1>⬡ Network Vulnerability Scanner</h1>
-    <span>{{ hostname }} — Local Network Audit</span>
+    <div class="header-right">
+        <a href="/checks" class="header-link">What We Check</a>
+        <span>{{ hostname }} — Local Network Audit</span>
+    </div>
 </header>
 
 <!-- Confirm clear history overlay -->
@@ -712,6 +799,13 @@
             <div class="progress-bar-fill" id="progress-fill"></div>
         </div>
         <div class="progress-message" id="progress-message">Starting...</div>
+        <div class="error-banner" id="scan-error-banner" style="display:none;">
+            <span class="icon">⚠</span>
+            <div>
+                <div class="head">Scan Failed</div>
+                <div class="detail" id="scan-error-detail"></div>
+            </div>
+        </div>
         <div class="ai-status-indicator" id="ai-status-indicator"></div>
         <div class="progress-stages">
             <span class="progress-stage" id="stage-scanning">① Scanning</span>
@@ -726,7 +820,7 @@
 
     {% if viewing_history %}
     <div class="history-banner">
-        ⚠ Viewing historical scan from {{ viewing_history }} —
+        ⚠ Viewing historical scan from {{ analysis.timestamp if analysis and analysis.timestamp else viewing_history }} —
         <a href="/">Back to latest</a>
     </div>
     {% endif %}
@@ -734,69 +828,85 @@
     {% if analysis %}
         {% set rating_lower = analysis.rating | lower %}
 
-        <!-- Network Summary Tiles -->
-        {% if scan_meta %}
-        <div class="summary-grid">
-            <div class="summary-tile">
-                <div class="tile-value">{{ scan_meta.total_hosts }}</div>
-                <div class="tile-label">Hosts Found</div>
-            </div>
-            <div class="summary-tile">
-                <div class="tile-value">{{ scan_meta.total_ports }}</div>
-                <div class="tile-label">Open Ports</div>
-            </div>
-            <div class="summary-tile">
-                <div class="tile-value">{{ analysis.findings | length }}</div>
-                <div class="tile-label">Findings</div>
-            </div>
-            <div class="summary-tile">
-                <div class="tile-value red">{{ analysis.severity_counts.critical }}</div>
-                <div class="tile-label">Critical</div>
-            </div>
-            <div class="summary-tile">
-                <div class="tile-value orange">{{ analysis.cve_count if analysis.cve_count else '0' }}</div>
-                <div class="tile-label">CVEs Found</div>
-                {% if analysis.cve_mode %}
-                <div class="cve-mode {{ analysis.cve_mode }}">{{ analysis.cve_mode }}</div>
+        <div class="top-grid">
+            <!-- Score Card -->
+            <div class="score-card {{ rating_lower }}">
+                <div class="score-number">{{ analysis.score }}</div>
+                <div class="score-label">{{ analysis.rating }}</div>
+                {% if not viewing_history %}
+                <div style="display:flex; gap:15px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:25px;">
+                    <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run New Scan</button>
+                    <label class="ai-toggle-label">
+                        <input type="checkbox" id="generate-ai-report" checked>
+                        Generate AI Report
+                    </label>
+                </div>
+                <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:15px;">
+                    <a href="/download-pdf" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
+                    <a href="/export/csv" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
+                    <a href="/export/json" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
+                </div>
+                {% else %}
+                <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:25px;">
+                    <a href="/download-pdf/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
+                    <a href="/export/csv/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
+                    <a href="/export/json/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
+                    <a href="/" class="scan-btn" style="text-decoration:none;">← Latest Scan</a>
+                </div>
                 {% endif %}
+                <div class="warning-banner" id="scan-trigger-warning" style="display:none;">
+                    <span class="icon">⚠</span>
+                    <div>
+                        <div class="head">Please Wait</div>
+                        <div class="detail" id="scan-trigger-warning-detail"></div>
+                    </div>
+                </div>
+                <div class="error-banner" id="scan-trigger-error" style="display:none;">
+                    <span class="icon">⚠</span>
+                    <div>
+                        <div class="head">Couldn't Start Scan</div>
+                        <div class="detail" id="scan-trigger-error-detail"></div>
+                    </div>
+                </div>
+                <div id="scan-status"></div>
             </div>
-            <div class="summary-tile">
-                <div class="tile-value small">{{ analysis.duration if analysis.duration else '—' }}</div>
-                <div class="tile-label">Duration</div>
-            </div>
-        </div>
-        {% endif %}
 
-        <!-- Score Card -->
-        <div class="score-card {{ rating_lower }}">
-            <div class="score-number">{{ analysis.score }}</div>
-            <div class="score-label">{{ analysis.rating }}</div>
-            <div class="score-sublabel">
-                {{ analysis.findings | length }} finding(s) detected
-                {% if analysis.timestamp %} — {{ analysis.timestamp }}{% endif %}
-            </div>
-            {% if not viewing_history %}
-            <div style="display:flex; gap:15px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:25px;">
-                <button class="scan-btn" onclick="triggerScan()" id="scan-btn">▶ Run New Scan</button>
-                <label class="ai-toggle-label">
-                    <input type="checkbox" id="generate-ai-report" checked>
-                    Generate AI Report
-                </label>
-            </div>
-            <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:15px;">
-                <a href="/download-pdf" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
-                <a href="/export/csv" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
-                <a href="/export/json" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
-            </div>
-            {% else %}
-            <div style="display:flex; gap:15px; justify-content:center; flex-wrap:wrap; margin-top:25px;">
-                <a href="/download-pdf/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ PDF</a>
-                <a href="/export/csv/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ CSV</a>
-                <a href="/export/json/history/{{ viewing_history }}" class="scan-btn" style="text-decoration:none;">↓ JSON</a>
-                <a href="/" class="scan-btn" style="text-decoration:none;">← Latest Scan</a>
+            <!-- Network Summary Tiles -->
+            {% if scan_meta %}
+            <div class="summary-grid">
+                <div class="summary-tile">
+                    <div class="tile-value">{{ scan_meta.total_hosts }}</div>
+                    <div class="tile-label">Hosts Found</div>
+                </div>
+                <div class="summary-tile">
+                    <div class="tile-value">{{ scan_meta.total_ports }}</div>
+                    <div class="tile-label">Open Ports</div>
+                </div>
+                <div class="summary-tile">
+                    <div class="tile-value">{{ analysis.findings | length }}</div>
+                    <div class="tile-label">Findings</div>
+                </div>
+                <div class="summary-tile">
+                    <div class="tile-value red">{{ analysis.severity_counts.critical }}</div>
+                    <div class="tile-label">Critical</div>
+                </div>
+                <div class="summary-tile">
+                    <div class="tile-value orange">{{ analysis.cve_count if analysis.cve_count else '0' }}</div>
+                    <div class="tile-label">CVEs Found</div>
+                    {% if analysis.cve_mode %}
+                    <div class="cve-mode {{ analysis.cve_mode }}">{{ analysis.cve_mode }}</div>
+                    {% endif %}
+                </div>
+                <div class="summary-tile">
+                    <div class="tile-value dim">{{ analysis.duration if analysis.duration else '—' }}</div>
+                    <div class="tile-label">Duration</div>
+                </div>
+                <div class="summary-tile span-full">
+                    <div class="tile-value">{{ analysis.timestamp if analysis.timestamp else '—' }}</div>
+                    <div class="tile-label">Scanned</div>
+                </div>
             </div>
             {% endif %}
-            <div id="scan-status"></div>
         </div>
 
         <!-- Traffic Monitor -->
@@ -822,6 +932,34 @@
             </div>
             <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
             <div class="traffic-status-line" id="traffic-status"></div>
+            <div class="error-banner" id="traffic-error-banner" style="display:none;">
+                <span class="icon">⚠</span>
+                <div>
+                    <div class="head">Capture Failed</div>
+                    <div class="detail" id="traffic-error-detail"></div>
+                </div>
+            </div>
+            <div class="warning-banner" id="traffic-warning-banner" style="display:none;">
+                <span class="icon">⚠</span>
+                <div>
+                    <div class="head" id="traffic-warning-head">Notice</div>
+                    <div class="detail" id="traffic-warning-detail"></div>
+                </div>
+            </div>
+            <div class="stat-grid" id="traffic-stat-grid" style="display:none;">
+                <div class="stat-tile">
+                    <div class="v" id="stat-duration">—</div>
+                    <div class="l">Duration</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="v" id="stat-packets">—</div>
+                    <div class="l">Packets Seen</div>
+                </div>
+                <div class="stat-tile" id="stat-findings-tile">
+                    <div class="v" id="stat-findings">—</div>
+                    <div class="l">Findings</div>
+                </div>
+            </div>
             <div class="traffic-results" id="traffic-results"></div>
         </div>
         {% endif %}
@@ -834,20 +972,24 @@
                 <div class="tile-label">CPU Usage</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-ram">—</div>
-                <div class="tile-label">RAM Used</div>
-            </div>
-            <div class="summary-tile">
-                <div class="tile-value small" id="res-avail">—</div>
-                <div class="tile-label">RAM Available</div>
-            </div>
-            <div class="summary-tile">
                 <div class="tile-value" id="res-temp">—</div>
                 <div class="tile-label">CPU Temp</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value small" id="res-ollama">—</div>
+                <div class="tile-value" id="res-ram">—</div>
+                <div class="tile-label">RAM Used</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-avail">—</div>
+                <div class="tile-label">RAM Available</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-ollama">—</div>
                 <div class="tile-label">Ollama Model</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-uptime">—</div>
+                <div class="tile-label">Uptime</div>
             </div>
         </div>
 
@@ -929,6 +1071,20 @@
                     Generate AI Report
                 </label>
             </div>
+            <div class="warning-banner" id="scan-trigger-warning" style="display:none;">
+                <span class="icon">⚠</span>
+                <div>
+                    <div class="head">Please Wait</div>
+                    <div class="detail" id="scan-trigger-warning-detail"></div>
+                </div>
+            </div>
+            <div class="error-banner" id="scan-trigger-error" style="display:none;">
+                <span class="icon">⚠</span>
+                <div>
+                    <div class="head">Couldn't Start Scan</div>
+                    <div class="detail" id="scan-trigger-error-detail"></div>
+                </div>
+            </div>
             <div id="scan-status"></div>
         </div>
 
@@ -954,6 +1110,34 @@
             </div>
             <button class="stop-btn" id="traffic-stop-btn" onclick="stopTrafficMonitor()" style="display:none;">■ Stop Capture</button>
             <div class="traffic-status-line" id="traffic-status"></div>
+            <div class="error-banner" id="traffic-error-banner" style="display:none;">
+                <span class="icon">⚠</span>
+                <div>
+                    <div class="head">Capture Failed</div>
+                    <div class="detail" id="traffic-error-detail"></div>
+                </div>
+            </div>
+            <div class="warning-banner" id="traffic-warning-banner" style="display:none;">
+                <span class="icon">⚠</span>
+                <div>
+                    <div class="head" id="traffic-warning-head">Notice</div>
+                    <div class="detail" id="traffic-warning-detail"></div>
+                </div>
+            </div>
+            <div class="stat-grid" id="traffic-stat-grid" style="display:none;">
+                <div class="stat-tile">
+                    <div class="v" id="stat-duration">—</div>
+                    <div class="l">Duration</div>
+                </div>
+                <div class="stat-tile">
+                    <div class="v" id="stat-packets">—</div>
+                    <div class="l">Packets Seen</div>
+                </div>
+                <div class="stat-tile" id="stat-findings-tile">
+                    <div class="v" id="stat-findings">—</div>
+                    <div class="l">Findings</div>
+                </div>
+            </div>
             <div class="traffic-results" id="traffic-results"></div>
         </div>
 
@@ -965,20 +1149,24 @@
                 <div class="tile-label">CPU Usage</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-ram">—</div>
-                <div class="tile-label">RAM Used</div>
-            </div>
-            <div class="summary-tile">
-                <div class="tile-value small" id="res-avail">—</div>
-                <div class="tile-label">RAM Available</div>
-            </div>
-            <div class="summary-tile">
                 <div class="tile-value" id="res-temp">—</div>
                 <div class="tile-label">CPU Temp</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value small" id="res-ollama">—</div>
+                <div class="tile-value" id="res-ram">—</div>
+                <div class="tile-label">RAM Used</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-avail">—</div>
+                <div class="tile-label">RAM Available</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-ollama">—</div>
                 <div class="tile-label">Ollama Model</div>
+            </div>
+            <div class="summary-tile">
+                <div class="tile-value" id="res-uptime">—</div>
+                <div class="tile-label">Uptime</div>
             </div>
         </div>
     {% endif %}
@@ -1021,6 +1209,13 @@
             </select>
         </div>
         <button class="scan-btn" style="padding:8px 20px; font-size:0.75rem;" onclick="compareScans()">Compare</button>
+    </div>
+    <div class="warning-banner" id="compare-warning-banner" style="display:none; margin-bottom: 20px;">
+        <span class="icon">⚠</span>
+        <div>
+            <div class="head">Can't Compare</div>
+            <div class="detail">Choose two different scans to compare.</div>
+        </div>
     </div>
     {% endif %}
 
@@ -1079,11 +1274,22 @@
 
                 overlay.classList.add('active');
 
+                // Real progress data is now flowing, so any trigger-
+                // time notice (already-running, couldn't start) is no
+                // longer needed — this is what's showing it now.
+                const triggerWarn = document.getElementById('scan-trigger-warning');
+                if (triggerWarn) triggerWarn.style.display = 'none';
+                const triggerErr = document.getElementById('scan-trigger-error');
+                if (triggerErr) triggerErr.style.display = 'none';
+
                 if (data.stage === 'error') {
                     fill.style.width = '100%';
                     fill.classList.add('error');
-                    msg.textContent = '⚠ ' + data.message;
-                    msg.classList.add('error');
+                    msg.textContent = '';
+                    const errBanner = document.getElementById('scan-error-banner');
+                    const errDetail = document.getElementById('scan-error-detail');
+                    if (errDetail) errDetail.textContent = data.message;
+                    if (errBanner) errBanner.style.display = 'flex';
                     if (stopBtn) stopBtn.style.display = 'none';
                     if (scanBtn) {
                         scanBtn.disabled = false;
@@ -1108,20 +1314,31 @@
                 msg.textContent  = '';
                 updateStages(data.stage);
 
-                // Relabel the AI Report stage and show an indicator when
-                // this specific running scan has AI reporting disabled —
-                // read from the backend (main.py sets this from the flag
-                // it was actually started with), not from the checkbox's
+                // Hide the AI Report stage entirely (rather than just
+                // relabeling it "(Skipped)") when this specific running
+                // scan has AI reporting disabled — read from the
+                // backend (main.py sets this from the flag it was
+                // actually started with), not from the checkbox's
                 // current on-page state, since those can differ (e.g.
                 // this poll could be showing someone else's already-
                 // running scan, started with a different setting).
+                // The later stages renumber to fill the gap — this is
+                // purely cosmetic display text; updateStages() above
+                // already matched the active stage by name, not by
+                // number, so renumbering here doesn't affect that.
                 const stageReportingEl = document.getElementById('stage-reporting');
+                const stageSavingEl    = document.getElementById('stage-saving');
+                const stageCompleteEl  = document.getElementById('stage-complete');
                 const aiIndicator      = document.getElementById('ai-status-indicator');
                 if (data.ai_report_enabled === false) {
-                    if (stageReportingEl) stageReportingEl.textContent = '④ AI Report (Skipped)';
+                    if (stageReportingEl) stageReportingEl.style.display = 'none';
+                    if (stageSavingEl)    stageSavingEl.textContent   = '④ Saving';
+                    if (stageCompleteEl)  stageCompleteEl.textContent = '⑤ Complete';
                     if (aiIndicator) aiIndicator.textContent = '⚠ AI report generation disabled for this scan';
                 } else {
-                    if (stageReportingEl) stageReportingEl.textContent = '④ AI Report';
+                    if (stageReportingEl) stageReportingEl.style.display = '';
+                    if (stageSavingEl)    stageSavingEl.textContent   = '⑤ Saving';
+                    if (stageCompleteEl)  stageCompleteEl.textContent = '⑥ Complete';
                     if (aiIndicator) aiIndicator.textContent = '';
                 }
 
@@ -1161,6 +1378,16 @@
         btn.disabled    = true;
         btn.textContent = '⏳ Starting...';
         if (status) status.textContent = '';
+        // scan-error-banner lives inside #progress-overlay and is only
+        // for a scan that genuinely failed mid-progress (set by
+        // pollStatus() below) — untouched here. These two live next to
+        // the button itself instead, for trigger-time notices where no
+        // scan is actually running yet, so they never borrow the
+        // "Scan In Progress" display for something that isn't one.
+        const triggerWarn = document.getElementById('scan-trigger-warning');
+        if (triggerWarn) triggerWarn.style.display = 'none';
+        const triggerErr = document.getElementById('scan-trigger-error');
+        if (triggerErr) triggerErr.style.display = 'none';
 
         fetch('/scan', {
             method: 'POST',
@@ -1172,21 +1399,40 @@
                 if (data.status === 'started') {
                     startPolling();
                 } else if (data.status === 'already_running') {
-                    // A scan genuinely IS running (just not one this
-                    // click started) — resume polling so its live
-                    // progress actually shows up, instead of leaving
-                    // a static message with no way to see current
-                    // status short of a manual page refresh.
-                    if (status) status.textContent = data.message;
-                    startPolling();
+                    const warnDetail = document.getElementById('scan-trigger-warning-detail');
+                    if (warnDetail) warnDetail.textContent = data.message;
+                    if (triggerWarn) triggerWarn.style.display = 'flex';
+
+                    if (data.conflict === 'scan') {
+                        // A scan genuinely IS running (just not one
+                        // this click started) — resume polling so its
+                        // live progress actually shows up via the real
+                        // progress-overlay, instead of leaving a static
+                        // message with no way to see current status
+                        // short of a manual refresh. pollStatus() below
+                        // also clears this banner once real data starts
+                        // flowing, so it doesn't linger redundantly.
+                        startPolling();
+                    } else {
+                        // Conflict is with Traffic Monitor, not
+                        // another scan — nothing is actually running
+                        // server-side for THIS click, so there's
+                        // nothing to poll. Just reset the button.
+                        btn.disabled    = false;
+                        btn.textContent = '▶ Run New Scan';
+                    }
                 } else {
-                    if (status) status.textContent = 'Error: ' + data.message;
+                    const errDetail = document.getElementById('scan-trigger-error-detail');
+                    if (errDetail) errDetail.textContent = data.message;
+                    if (triggerErr) triggerErr.style.display = 'flex';
                     btn.disabled    = false;
                     btn.textContent = '▶ Run New Scan';
                 }
             })
             .catch(() => {
-                if (status) status.textContent = 'Could not contact scanner.';
+                const errDetail = document.getElementById('scan-trigger-error-detail');
+                if (errDetail) errDetail.textContent = 'Could not contact scanner.';
+                if (triggerErr) triggerErr.style.display = 'flex';
                 btn.disabled    = false;
                 btn.textContent = '▶ Run New Scan';
             });
@@ -1263,12 +1509,24 @@
         const toEl   = document.getElementById('compare-to');
         if (!fromEl || !toEl) return;
 
-        const fromId = fromEl.value;
-        const toId   = toEl.value;
+        let fromId = fromEl.value;
+        let toId   = toEl.value;
 
         if (fromId === toId) {
-            alert('Choose two different scans to compare.');
+            const warnBanner = document.getElementById('compare-warning-banner');
+            if (warnBanner) warnBanner.style.display = 'flex';
             return;
+        }
+
+        // History IDs are date-based folder names (YYYY-MM-DD_HH-MM-SS),
+        // confirmed by get_history() sorting on the name itself — so a
+        // plain string comparison reliably tells which is genuinely
+        // earlier. Swapped here so the comparison is always correct
+        // regardless of which dropdown the user happened to pick which
+        // scan in — otherwise "added"/"resolved" findings would be
+        // silently backwards whenever picked out of order.
+        if (fromId > toId) {
+            [fromId, toId] = [toId, fromId];
         }
 
         window.location.href = `/diff/${fromId}/${toId}`;
@@ -1295,7 +1553,7 @@
         [0, 25, 50, 75, 100].forEach(v => {
             const y = yFor(v);
             gridLines += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="#1a1a1a" stroke-width="1" />`;
-            gridLines += `<text x="${padding.left - 8}" y="${y + 4}" fill="#555" font-size="10" text-anchor="end" font-family="'Courier New', monospace">${v}</text>`;
+            gridLines += `<text x="${padding.left - 8}" y="${y + 4}" fill="#555" font-size="10" text-anchor="end" font-family="'JetBrains Mono', monospace">${v}</text>`;
         });
 
         const points = data.map((d, i) => `${xFor(i)},${yFor(d.score)}`).join(' ');
@@ -1351,7 +1609,7 @@
             const value = Math.round((maxCount / gridSteps) * i);
             const y = yFor(value);
             gridLines += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="#1a1a1a" stroke-width="1" />`;
-            gridLines += `<text x="${padding.left - 6}" y="${y + 4}" fill="#555" font-size="10" text-anchor="end" font-family="'Courier New', monospace">${value}</text>`;
+            gridLines += `<text x="${padding.left - 6}" y="${y + 4}" fill="#555" font-size="10" text-anchor="end" font-family="'JetBrains Mono', monospace">${value}</text>`;
         }
 
         let lines = '';
@@ -1469,10 +1727,17 @@
                 if (track) track.style.display = 'none';
 
                 const status = document.getElementById('traffic-status');
-                if (status) status.textContent = 'Capture stopped.';
+                const warnBanner = document.getElementById('traffic-warning-banner');
+                const warnHead   = document.getElementById('traffic-warning-head');
+                const warnDetail = document.getElementById('traffic-warning-detail');
+                if (warnHead)   warnHead.textContent = 'Capture Stopped';
+                if (warnDetail) warnDetail.textContent = 'You stopped this capture before it finished.';
+                if (warnBanner) warnBanner.style.display = 'flex';
 
                 const results = document.getElementById('traffic-results');
                 if (results) results.innerHTML = '';
+                const statGridStop = document.getElementById('traffic-stat-grid');
+                if (statGridStop) statGridStop.style.display = 'none';
 
                 if (stopBtn) {
                     stopBtn.disabled    = false;
@@ -1492,7 +1757,6 @@
         if (!btn || btn.dataset.capturing === 'true') return;
 
         const status = document.getElementById('traffic-status');
-        if (status) status.textContent = `Starting a ${selectedTrafficDuration}s capture...`;
 
         fetch('/api/traffic-monitor', {
             method: 'POST',
@@ -1502,11 +1766,19 @@
             .then(r => r.json())
             .then(data => {
                 if (data.status === 'already_running') {
-                    if (status) status.textContent = data.message;
+                    const warnBanner = document.getElementById('traffic-warning-banner');
+                    const warnHead   = document.getElementById('traffic-warning-head');
+                    const warnDetail = document.getElementById('traffic-warning-detail');
+                    if (warnHead)   warnHead.textContent = 'Please Wait';
+                    if (warnDetail) warnDetail.textContent = data.message;
+                    if (warnBanner) warnBanner.style.display = 'flex';
                     return;
                 }
                 if (data.status === 'error') {
-                    if (status) status.textContent = 'Error: ' + data.message;
+                    const errBanner = document.getElementById('traffic-error-banner');
+                    const errDetail = document.getElementById('traffic-error-detail');
+                    if (errDetail) errDetail.textContent = data.message;
+                    if (errBanner) errBanner.style.display = 'flex';
                     return;
                 }
                 // status === 'started' — app.py already wrote accurate
@@ -1514,8 +1786,15 @@
                 // will see the truth immediately. This optimistic
                 // update just avoids a brief flicker waiting on the
                 // first poll's round trip.
+                if (status) status.textContent = '';
+                const trafficErrBanner = document.getElementById('traffic-error-banner');
+                if (trafficErrBanner) trafficErrBanner.style.display = 'none';
+                const trafficWarnBanner = document.getElementById('traffic-warning-banner');
+                if (trafficWarnBanner) trafficWarnBanner.style.display = 'none';
                 const results = document.getElementById('traffic-results');
                 if (results) results.innerHTML = '';
+                const statGridStart = document.getElementById('traffic-stat-grid');
+                if (statGridStart) statGridStart.style.display = 'none';
                 setTrafficCapturingUI(true);
                 const track = document.getElementById('traffic-progress-track');
                 const fill  = document.getElementById('traffic-progress-fill');
@@ -1524,7 +1803,10 @@
                 beginTrafficPolling();
             })
             .catch(() => {
-                if (status) status.textContent = 'Could not contact scanner.';
+                const errBanner = document.getElementById('traffic-error-banner');
+                const errDetail = document.getElementById('traffic-error-detail');
+                if (errDetail) errDetail.textContent = 'Could not contact scanner.';
+                if (errBanner) errBanner.style.display = 'flex';
             });
     }
 
@@ -1562,7 +1844,6 @@
                         const pct = Math.min(100, (elapsedMs / (data.duration * 1000)) * 100);
                         fill.style.width = pct + '%';
                     }
-                    if (status) status.textContent = data.message || 'Capturing...';
                     if (!trafficPollInterval) {
                         trafficPollInterval = setInterval(pollTrafficStatus, 2000);
                     }
@@ -1580,19 +1861,45 @@
                 if (fill)  fill.style.width = '100%';
                 if (track) setTimeout(() => { track.style.display = 'none'; }, 500);
 
+                const statGrid  = document.getElementById('traffic-stat-grid');
+                const statDur   = document.getElementById('stat-duration');
+                const statPkts  = document.getElementById('stat-packets');
+                const statFind  = document.getElementById('stat-findings');
+                const statFindT = document.getElementById('stat-findings-tile');
+
                 if (data.results && data.results.success) {
-                    if (status) {
-                        status.textContent = `Capture complete — ${data.results.duration_seconds}s` +
-                            (data.results.own_ip ? ` — this device: ${data.results.own_ip}` : '') +
-                            ` — ${data.results.total_packets} packet(s) seen`;
+                    const findingsCount = (data.results.port_scan_flags || []).length +
+                                           (data.results.arp_sweep_flags || []).length;
+
+                    const successWarnBanner = document.getElementById('traffic-warning-banner');
+                    if (successWarnBanner) successWarnBanner.style.display = 'none';
+
+                    if (statGrid) statGrid.style.display = 'grid';
+                    if (statDur)  statDur.textContent  = `${data.results.duration_seconds}s`;
+                    if (statPkts) statPkts.textContent = data.results.total_packets;
+                    if (statFind) statFind.textContent = findingsCount;
+                    if (statFindT) {
+                        statFindT.classList.remove('alert', 'clean');
+                        statFindT.classList.add(findingsCount > 0 ? 'alert' : 'clean');
                     }
+
                     renderTrafficResults(data.results);
                 } else if (data.results && data.results.stopped) {
                     // A user-initiated stop isn't really an "error" —
                     // worded and styled calmer than a genuine failure.
-                    if (status) status.textContent = 'Last capture was stopped before it finished.';
+                    const warnBanner = document.getElementById('traffic-warning-banner');
+                    const warnHead   = document.getElementById('traffic-warning-head');
+                    const warnDetail = document.getElementById('traffic-warning-detail');
+                    if (warnHead)   warnHead.textContent = 'Capture Stopped';
+                    if (warnDetail) warnDetail.textContent = 'Last capture was stopped before it finished.';
+                    if (warnBanner) warnBanner.style.display = 'flex';
+                    if (statGrid) statGrid.style.display = 'none';
                 } else if (data.results && !data.results.success) {
-                    if (status) status.textContent = 'Error: ' + (data.results.error || 'Capture failed.');
+                    const errBanner = document.getElementById('traffic-error-banner');
+                    const errDetail = document.getElementById('traffic-error-detail');
+                    if (errDetail) errDetail.textContent = data.results.error || 'Capture failed.';
+                    if (errBanner) errBanner.style.display = 'flex';
+                    if (statGrid) statGrid.style.display = 'none';
                 }
             })
             .catch(() => {
@@ -1657,6 +1964,7 @@
                 const availEl  = document.getElementById('res-avail');
                 const tempEl   = document.getElementById('res-temp');
                 const ollamaEl = document.getElementById('res-ollama');
+                const uptimeEl = document.getElementById('res-uptime');
 
                 if (cpuEl) {
                     if (data.cpu_percent === null || data.cpu_percent === undefined) {
@@ -1675,7 +1983,7 @@
                     }
                     if (availEl) {
                         availEl.textContent = data.memory.available_gb + 'GB free';
-                        availEl.className = 'tile-value small';
+                        availEl.className = 'tile-value';
                     }
                 }
 
@@ -1692,11 +2000,15 @@
                 if (ollamaEl) {
                     if (data.ollama && data.ollama.loaded) {
                         ollamaEl.textContent = `${data.ollama.name} (${data.ollama.size_gb}GB)`;
-                        ollamaEl.className = 'tile-value small ok';
+                        ollamaEl.className = 'tile-value ok';
                     } else {
                         ollamaEl.textContent = 'Not loaded';
-                        ollamaEl.className = 'tile-value small crit';
+                        ollamaEl.className = 'tile-value crit';
                     }
+                }
+
+                if (uptimeEl) {
+                    uptimeEl.textContent = data.uptime || '—';
                 }
             })
             .catch(() => { /* silently skip a failed poll, try again next interval */ });

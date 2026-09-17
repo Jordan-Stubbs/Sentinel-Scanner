@@ -12,6 +12,7 @@ import urllib.request
 import urllib.error
 import config
 from diff import compare_scans
+from analyser import RULES
 
 app = Flask(__name__)
 
@@ -107,11 +108,11 @@ def read_cpu_percent():
     except Exception:
         return None
 
-# read_memory, read_cpu_temp, and read_ollama_status are shared with
-# main.py (which uses them for point-in-time snapshots saved into
-# scan history) — defined once in resource_monitor.py rather than
-# duplicated here.
-from resource_monitor import read_memory, read_cpu_temp, read_ollama_status
+# read_memory, read_cpu_temp, read_ollama_status, and read_uptime are
+# shared with main.py (which uses them for point-in-time snapshots
+# saved into scan history) — defined once in resource_monitor.py
+# rather than duplicated here.
+from resource_monitor import read_memory, read_cpu_temp, read_ollama_status, read_uptime
 
 @app.route('/api/system')
 def api_system():
@@ -120,6 +121,7 @@ def api_system():
         'memory':      read_memory(),
         'cpu_temp':    read_cpu_temp(),
         'ollama':      read_ollama_status(),
+        'uptime':      read_uptime(),
     })
 
 @app.route('/')
@@ -194,6 +196,18 @@ def view_diff(id_a, id_b):
                            diff=result,
                            id_a=id_a,
                            id_b=id_b,
+                           hostname=get_hostname())
+
+@app.route('/checks')
+def view_checks():
+    """
+    A plain-language listing of every check this scanner performs —
+    reads directly from analyser.RULES rather than a separately
+    maintained description, so it can never drift out of sync with
+    what the scanner actually checks for.
+    """
+    return render_template('checks.html',
+                           rules=RULES,
                            hostname=get_hostname())
 
 @app.route('/api/history-trend')
@@ -279,15 +293,17 @@ def trigger_scan():
         status = load_json(config.SCAN_STATUS_PATH)
         if status and status.get('running'):
             return jsonify({
-                'status':  'already_running',
-                'message': 'A scan is already in progress. Please wait for it to finish or stop it first.'
+                'status':   'already_running',
+                'conflict': 'scan',
+                'message':  'A scan is already in progress. Please wait for it to finish or stop it first.'
             })
 
         traffic_status = load_json(config.TRAFFIC_STATUS_PATH)
         if traffic_status and traffic_status.get('running'):
             return jsonify({
-                'status':  'already_running',
-                'message': 'A traffic monitor capture is currently in progress. Please wait for it to finish first.'
+                'status':   'already_running',
+                'conflict': 'traffic',
+                'message':  'A traffic monitor capture is currently in progress. Please wait for it to finish first.'
             })
 
         body = request.get_json(silent=True) or {}

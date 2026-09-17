@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan Comparison</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Mono', monospace;
             background: #0a0a0a;
             color: #e0e0e0;
             min-height: 100vh;
@@ -21,6 +24,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         header h1 { color: #00ff88; font-size: 1.4rem; letter-spacing: 2px; text-transform: uppercase; }
@@ -62,15 +68,15 @@
         }
 
         .score-block { text-align: center; }
-        .score-block .value { font-size: 2.5rem; font-weight: bold; color: #888; }
+        .score-block .value { font-size: 2.5rem; font-weight: bold; color: #888; font-variant-numeric: tabular-nums; }
         .score-block .label { font-size: 0.7rem; color: #555; letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
 
         .score-arrow { font-size: 1.5rem; color: #555; }
 
         .delta-badge {
             display: inline-block;
-            padding: 6px 18px;
-            border-radius: 4px;
+            padding: 6px 20px;
+            border-radius: 999px;
             font-size: 1rem;
             font-weight: bold;
             margin-top: 16px;
@@ -88,7 +94,7 @@
             background: #111;
             border: 1px solid #1e1e1e;
             border-left: 4px solid;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 14px 18px;
             margin-bottom: 10px;
         }
@@ -103,8 +109,8 @@
             font-size: 0.65rem;
             letter-spacing: 1px;
             text-transform: uppercase;
-            padding: 2px 8px;
-            border-radius: 3px;
+            padding: 2px 10px;
+            border-radius: 999px;
             margin-left: 8px;
         }
         .severity-tag.critical { background: #ff444422; color: #ff4444; }

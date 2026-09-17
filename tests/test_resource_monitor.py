@@ -82,9 +82,9 @@ class TestSampleCpuPercent(unittest.TestCase):
 
 class TestTakeSnapshot(unittest.TestCase):
 
-    def test_returns_all_four_fields(self):
+    def test_returns_all_five_fields(self):
         result = resource_monitor.take_snapshot(cpu_sample_interval=0.2)
-        expected_keys = {'cpu_percent', 'memory', 'cpu_temp', 'ollama'}
+        expected_keys = {'cpu_percent', 'memory', 'cpu_temp', 'ollama', 'uptime'}
         self.assertEqual(set(result.keys()), expected_keys)
         # memory should always succeed on a real Linux machine
         self.assertIsNotNone(result['memory'])
