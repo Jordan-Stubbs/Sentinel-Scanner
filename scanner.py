@@ -3,7 +3,7 @@ import json
 import subprocess
 import config
 
-# MAC vendor prefix lookup — first 8 chars of MAC (XX:XX:XX)
+# MAC vendor prefix lookup - first 8 chars of MAC (XX:XX:XX)
 # Covers the most common home/SME device manufacturers
 VENDOR_MAP = {
     'b8:27:eb': 'Raspberry Pi',
@@ -129,7 +129,7 @@ def scan_network(target):
                     'state':   port_info['state'],
                     'service': port_info['name'],
                     # nmap's specific detected product (e.g. "Werkzeug
-                    # httpd", "Apache httpd", "nginx") — previously
+                    # httpd", "Apache httpd", "nginx") - previously
                     # discarded here, which meant cve_lookup.py had no
                     # way to tell a generic "http" category apart from
                     # a specific real product, and had to fall back to

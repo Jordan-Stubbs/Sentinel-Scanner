@@ -3,11 +3,11 @@
 # setup_cve_cron.sh
 #
 # Interactively schedules automatic refreshing of the offline CVE
-# cache (cve_cache.json) via cron — entirely through plain-English
+# cache (cve_cache.json) via cron - entirely through plain-English
 # questions (which day, what time). No cron syntax knowledge needed;
 # the script builds the correct schedule internally.
 #
-# Safe to re-run at any time to change the schedule — it overwrites
+# Safe to re-run at any time to change the schedule - it overwrites
 # the existing cron entry rather than adding a duplicate.
 #
 # Note: cron only fires if the machine is actually powered on and
@@ -48,7 +48,7 @@ read_time() {
             MINUTE="${BASH_REMATCH[2]}"
             break
         else
-            warn "That doesn't look like a valid time — try something like 3:00 or 14:30."
+            warn "That doesn't look like a valid time - try something like 3:00 or 14:30."
         fi
     done
 }
@@ -59,7 +59,7 @@ echo "  1) Daily at 3:00 AM (recommended)"
 echo "  2) Daily, at a time I choose"
 echo "  3) Weekly, on a day and time I choose"
 echo "  4) Monthly, on the 1st at 3:00 AM"
-echo "  5) Don't schedule anything — I'll refresh manually"
+echo "  5) Don't schedule anything - I'll refresh manually"
 read -p "Choice [1-5]: " CHOICE
 
 DESCRIPTION=""
@@ -82,7 +82,7 @@ case "$CHOICE" in
         done
         read -p "    Choice [0-6]: " DOW
         if ! [[ "$DOW" =~ ^[0-6]$ ]]; then
-            warn "That's not a valid day — defaulting to Sunday."
+            warn "That's not a valid day - defaulting to Sunday."
             DOW=0
         fi
         read_time
@@ -114,5 +114,5 @@ else
         sudo rm -f "$CRON_FILE"
         log "Removed any existing auto-refresh schedule."
     fi
-    log "No schedule set — run '$VENV_PYTHON build_cve_cache.py' manually anytime to refresh."
+    log "No schedule set - run '$VENV_PYTHON build_cve_cache.py' manually anytime to refresh."
 fi

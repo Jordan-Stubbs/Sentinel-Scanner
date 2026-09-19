@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vulnerability Checks — Sentinel</title>
+    <title>Vulnerability Checks - Sentinel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -112,7 +112,7 @@
 
 <header>
     <h1>Sentinel</h1>
-    <span>{{ hostname }} — Vulnerability Checks</span>
+    <span>{{ hostname }} - Vulnerability Checks</span>
 </header>
 
 <div class="container">
@@ -121,14 +121,14 @@
     <div class="intro">
         <h2>Two Layers of Detection</h2>
         <p>
-            The <strong>{{ rules | length }} checks below</strong> are fixed, hand-written rules —
+            The <strong>{{ rules | length }} checks below</strong> are fixed, hand-written rules -
             each one looks for a specific port and service with a known, real-world risk if it's
             reachable on your network.
         </p>
         <p>
             Every detected service is also checked against the <strong>National Vulnerability
             Database (NVD)</strong> for CVEs matching that exact product and version. This second
-            layer isn't a fixed list — it stays current automatically as new vulnerabilities are
+            layer isn't a fixed list - it stays current automatically as new vulnerabilities are
             published, without this rule set ever needing to be updated by hand.
         </p>
     </div>
@@ -139,13 +139,13 @@
         <div class="stat-tile high"><div class="v">{{ rules | selectattr('severity', 'equalto', 'high') | list | length }}</div><div class="l">High</div></div>
         <div class="stat-tile medium"><div class="v">{{ rules | selectattr('severity', 'equalto', 'medium') | list | length }}</div><div class="l">Medium</div></div>
         <div class="stat-tile low"><div class="v">{{ rules | selectattr('severity', 'equalto', 'low') | list | length }}</div><div class="l">Low</div></div>
-        <div class="stat-tile info"><div class="v">{{ cve_cache_updated if cve_cache_updated else '—' }}</div><div class="l">CVE Cache Updated</div></div>
+        <div class="stat-tile info"><div class="v">{{ cve_cache_updated if cve_cache_updated else '-' }}</div><div class="l">CVE Cache Updated</div></div>
     </div>
 
     {% for sev in ['critical', 'high', 'medium', 'low'] %}
         {% set sev_rules = rules | selectattr('severity', 'equalto', sev) | list %}
         {% if sev_rules %}
-        <p class="section-title {{ sev }}">{{ sev }} — {{ sev_rules | length }} check{{ 's' if sev_rules | length != 1 }}</p>
+        <p class="section-title {{ sev }}">{{ sev }} - {{ sev_rules | length }} check{{ 's' if sev_rules | length != 1 }}</p>
         {% for rule in sev_rules %}
         <div class="rule-card {{ sev }}">
             <div class="rule-name">{{ rule.name }}</div>

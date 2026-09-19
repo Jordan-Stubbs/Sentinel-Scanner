@@ -1,7 +1,7 @@
 """
 test_diff.py
 
-Unit tests for diff.py's compare_scans() — uses temporary fake
+Unit tests for diff.py's compare_scans() - uses temporary fake
 history directories built in setUp(), never touches real scan data.
 
 Run from the scanner directory:
@@ -119,7 +119,7 @@ class TestCompareScans(unittest.TestCase):
 
     def test_cve_findings_matched_by_cve_id_not_generic_rule_id(self):
         # Two different CVEs on the same host/port share the generic
-        # rule_id pattern "CVE: <id>" — matching must use cve_id
+        # rule_id pattern "CVE: <id>" - matching must use cve_id
         # specifically, or these would be wrongly treated as the same finding.
         finding_a = {'host': '1.1.1.1', 'port': 22, 'cve_id': 'CVE-2020-0001',
                      'rule_id': 'CVE-2020-0001', 'severity': 'high'}

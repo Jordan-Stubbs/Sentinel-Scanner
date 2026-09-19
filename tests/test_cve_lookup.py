@@ -1,12 +1,12 @@
 """
 test_cve_lookup.py
 
-Unit tests for cve_lookup.py — validates version extraction, CVSS
+Unit tests for cve_lookup.py - validates version extraction, CVSS
 severity mapping, and (most importantly) the offline cache matching
 logic that was loosened on 2026-08-24 so version numbers are a
 scoring bonus rather than a hard requirement.
 
-These tests never touch the network or the real cve_cache.json —
+These tests never touch the network or the real cve_cache.json -
 query_nvd_offline() is tested against a temporary fake cache file.
 
 Run from the scanner directory:
@@ -122,7 +122,7 @@ class TestOfflineCacheMatching(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_matches_product_name_even_without_version_in_description(self):
-        # CVE-2000-0001 mentions "OpenSSH" but not "6.6.0" — should
+        # CVE-2000-0001 mentions "OpenSSH" but not "6.6.0" - should
         # still match under the loosened logic (this was the whole
         # point of the 2026-08-24 fix).
         results = cve_lookup.query_nvd_offline('OpenSSH 6.6.0')
@@ -130,7 +130,7 @@ class TestOfflineCacheMatching(unittest.TestCase):
         self.assertIn('CVE-2000-0001', ids)
 
     def test_version_matching_entry_is_ranked_first(self):
-        # CVE-2023-0002 mentions both "OpenSSH" and "6.6.0" — it should
+        # CVE-2023-0002 mentions both "OpenSSH" and "6.6.0" - it should
         # be scored higher and come before CVE-2000-0001, which only
         # matches on product name.
         results = cve_lookup.query_nvd_offline('OpenSSH 6.6.0')

@@ -2,9 +2,9 @@
 resource_monitor.py
 
 Shared resource-reading functions used by both:
-- app.py — continuous live polling for the dashboard's System
+- app.py - continuous live polling for the dashboard's System
   Resources tile (delta-based CPU%, using state between requests)
-- main.py — point-in-time snapshots saved into scan history, so
+- main.py - point-in-time snapshots saved into scan history, so
   resource usage during a scan can be reviewed later rather than
   only being visible live in the dashboard at the moment it happens
 
@@ -119,7 +119,7 @@ def read_uptime():
     """Read system uptime from /proc/uptime, returned as a short
     human-readable string (e.g. '3d 4h', '5h 23m', '12m'). Directly
     motivated by real debugging: this was the first diagnostic check
-    when tracking down the ollama-preload permission bug — a boot-
+    when tracking down the ollama-preload permission bug - a boot-
     time service that had silently failed only became suspicious once
     it was clear the Pi had recently rebooted. Surfacing this on the
     dashboard itself saves an SSH round-trip for that exact class of
@@ -153,7 +153,7 @@ def _read_cpu_totals():
 
 def sample_cpu_percent(interval=1.0):
     """
-    Blocking, one-shot CPU usage sample — takes two /proc/stat
+    Blocking, one-shot CPU usage sample - takes two /proc/stat
     readings 'interval' seconds apart and returns the usage percent
     across that window.
 
@@ -183,7 +183,7 @@ def take_snapshot(cpu_sample_interval=1.0):
     """
     A full point-in-time resource snapshot: CPU%, RAM, CPU temp,
     Ollama model status, and system uptime. Blocks for
-    cpu_sample_interval seconds while sampling CPU usage — negligible
+    cpu_sample_interval seconds while sampling CPU usage - negligible
     overhead against a multi-minute scan, but real, so callers doing
     this several times per scan should be aware of the small
     cumulative cost.

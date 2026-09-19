@@ -1,13 +1,13 @@
 """
 test_llm_reporter.py
 
-Unit tests for llm_reporter.py — validates that build_report_data()
+Unit tests for llm_reporter.py - validates that build_report_data()
 correctly separates rule findings from CVE findings, and that
 build_final_report() correctly assembles the AI-written sections with
 the deterministic (Python-generated) findings/CVE sections. These are
 the functions at the centre of the 2026-08-24 main.py integration fix.
 
-No network or Ollama calls are made — query_ollama()'s output is
+No network or Ollama calls are made - query_ollama()'s output is
 simulated directly as a string.
 
 Run from the scanner directory:
@@ -114,7 +114,7 @@ class TestBuildFinalReport(unittest.TestCase):
 
     def test_falls_back_when_ai_text_missing_sections(self):
         # Simulates the model failing to follow the expected header
-        # format — build_final_report() should still produce a
+        # format - build_final_report() should still produce a
         # complete, non-empty report using the fallback text.
         data = build_report_data(make_analysis([], score=100, rating='GOOD'))
         report = build_final_report('some unrelated garbled text', data)

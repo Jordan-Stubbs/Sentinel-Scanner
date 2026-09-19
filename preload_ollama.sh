@@ -3,7 +3,7 @@
 #
 # Waits for the Ollama service to come up, then sends an empty-prompt
 # request with keep_alive=-1 so Phi-3 Mini is loaded into RAM
-# immediately at boot and stays resident permanently — matching the
+# immediately at boot and stays resident permanently - matching the
 # keep_alive=-1 behaviour already used in llm_reporter.py's own
 # query_ollama() calls at scan time.
 #

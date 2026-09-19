@@ -3,7 +3,7 @@ venv/
 __pycache__/
 *.pyc
 
-# Runtime-generated scan data — contains real network info (IPs,
+# Runtime-generated scan data - contains real network info (IPs,
 # device names, vulnerability findings). Never commit this.
 scan_results.json
 analysis_results.json
@@ -13,7 +13,7 @@ history/
 security_report*.pdf
 
 # The offline CVE cache is large and easily regenerated with
-# build_cve_cache.py — no need to version it.
+# build_cve_cache.py - no need to version it.
 cve_cache.json
 
 # OS/editor cruft

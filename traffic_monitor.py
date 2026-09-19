@@ -5,21 +5,21 @@ On-demand SOC-style reconnaissance detection. Sniffs live traffic for
 a fixed duration and watches for two patterns:
 
   - Port scan: one source IP opening new TCP connections (SYN set,
-    ACK not set — a genuine connection attempt) to an unusually high
+    ACK not set - a genuine connection attempt) to an unusually high
     number of distinct ports on THIS device. On a switched network,
     unicast traffic between two OTHER devices is never delivered to
-    this device's interface at all — so "traffic addressed to this
+    this device's interface at all - so "traffic addressed to this
     device" is the only reliable signal available without a mirrored
     switch port. This is a genuine, honest limitation: a scan against
     a different device on the network is invisible to this tool.
 
     Only SYN-without-ACK packets are counted, not every packet
-    addressed here — reply traffic to the Pi's OWN outbound
+    addressed here - reply traffic to the Pi's OWN outbound
     connections (e.g. a DNS lookup) would otherwise look identical to
     an inbound scan, since each outbound request typically uses a
     different random ephemeral source port and the reply lands back
     on that port. Confirmed live: without this filter, Cloudflare's
-    public DNS resolver (1.1.1.1) was flagged as "scanning" the Pi —
+    public DNS resolver (1.1.1.1) was flagged as "scanning" the Pi -
     it was just answering several separate DNS lookups the Pi itself
     made. UDP is deliberately not checked for the same reason: UDP
     has no equivalent flag distinguishing a new probe from a reply,
@@ -27,7 +27,7 @@ a fixed duration and watches for two patterns:
     tracking that's out of scope here.
 
   - ARP sweep: one source sending ARP "who-has" requests for an
-    unusually high number of distinct target IPs in the window — the
+    unusually high number of distinct target IPs in the window - the
     classic signature of a full-subnet host discovery scan (this is
     exactly what this project's own scanner.py does, and is visible
     regardless of the switching limitation above, since ARP requests
@@ -61,7 +61,7 @@ import config
 
 def write_status(running, message='', started_at=None, duration=None):
     """Written by this script directly, since it runs as a background
-    process (via sudo) that app.py no longer waits on synchronously —
+    process (via sudo) that app.py no longer waits on synchronously -
     the dashboard learns what's happening by polling this file rather
     than from a single blocking request/response."""
     with open(config.TRAFFIC_STATUS_PATH, 'w') as f:
@@ -94,7 +94,7 @@ ARP_SWEEP_THRESHOLD = 10
 
 
 def get_own_ip():
-    """Best-effort detection of this device's own IP — port-scan
+    """Best-effort detection of this device's own IP - port-scan
     detection only makes sense for traffic actually addressed here."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -108,7 +108,7 @@ def get_own_ip():
 
 def evaluate_port_hits(port_hits, threshold=PORT_SCAN_THRESHOLD):
     """
-    Pure function — takes an already-collected {src_ip: set(ports)}
+    Pure function - takes an already-collected {src_ip: set(ports)}
     mapping and returns the flagged entries, sorted by severity. Kept
     separate from the actual packet capture so this logic can be
     unit tested directly without needing a live network.
@@ -143,7 +143,7 @@ def evaluate_arp_hits(arp_hits, threshold=ARP_SWEEP_THRESHOLD):
 def run_traffic_monitor(duration_seconds=60):
     """
     Sniffs live traffic for the given duration and returns a results
-    dict. Never raises — capture failures (insufficient privileges,
+    dict. Never raises - capture failures (insufficient privileges,
     no such interface, etc.) are reported in the result rather than
     crashing the caller, matching this project's existing pattern of
     graceful degradation (e.g. CVE lookup falling back to offline
@@ -167,17 +167,17 @@ def run_traffic_monitor(duration_seconds=60):
             if own_ip and pkt.haslayer(IP) and pkt[IP].dst == own_ip and pkt.haslayer(TCP):
                 tcp = pkt[TCP]
                 # Only count genuine new-connection attempts (SYN set,
-                # ACK not set) — a handshake reply (SYN-ACK) or any
+                # ACK not set) - a handshake reply (SYN-ACK) or any
                 # later packet in an existing connection (plain ACK,
                 # data) is reply/session traffic, not a scan. Without
                 # this filter, the Pi's own outbound activity (e.g. a
                 # DNS lookup) gets misread as an inbound scan: each
                 # outbound request uses a different random ephemeral
                 # source port, so the replies land on many different
-                # destination ports on the Pi — indistinguishable from
+                # destination ports on the Pi - indistinguishable from
                 # a real scan unless SYN-only packets are isolated.
                 # (Confirmed live: Cloudflare's DNS resolver 1.1.1.1
-                # was flagged as "scanning" the Pi before this fix —
+                # was flagged as "scanning" the Pi before this fix -
                 # it was just answering several separate DNS lookups.)
                 if tcp.flags & 0x02 and not tcp.flags & 0x10:  # SYN set, ACK not set
                     port_hits[pkt[IP].src].add(tcp.dport)
@@ -190,7 +190,7 @@ def run_traffic_monitor(duration_seconds=60):
     except PermissionError:
         return {
             'success': False,
-            'error':   'Permission denied — packet capture requires elevated privileges.',
+            'error':   'Permission denied - packet capture requires elevated privileges.',
         }
     except Exception as e:
         return {
@@ -204,7 +204,7 @@ def run_traffic_monitor(duration_seconds=60):
         'success':          True,
         'duration_seconds': elapsed,
         'own_ip':           own_ip,
-        # Diagnostic — total packets seen during the capture, regardless
+        # Diagnostic - total packets seen during the capture, regardless
         # of whether anything matched the detection thresholds. If this
         # is 0 (or suspiciously low) while genuine test traffic was
         # generated, that points to a capture/interface problem rather
@@ -226,7 +226,7 @@ if __name__ == "__main__":
 
     # app.py's trigger route already wrote the 'running' status
     # (with started_at and duration) synchronously, immediately, at
-    # the moment this process was spawned — not here, since Python
+    # the moment this process was spawned - not here, since Python
     # startup plus importing scapy can genuinely take several seconds
     # on a Raspberry Pi, and a poll firing during that window would
     # otherwise still see stale leftover status from whatever ran
@@ -236,6 +236,6 @@ if __name__ == "__main__":
     write_results(result)
     write_status(running=False, message='', started_at=None, duration=None)
 
-    # Also print to stdout — harmless, and useful when running this
+    # Also print to stdout - harmless, and useful when running this
     # script manually from the command line for testing/debugging.
     print(json.dumps(result))

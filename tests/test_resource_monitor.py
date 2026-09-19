@@ -51,7 +51,7 @@ class TestReadCpuTemp(unittest.TestCase):
 
     def test_returns_none_or_a_plausible_temperature(self):
         # Correctly returns None on machines/VMs with no accessible
-        # sensor (e.g. this test environment) — that's valid, not a
+        # sensor (e.g. this test environment) - that's valid, not a
         # failure. If a value IS returned, it must be plausible.
         result = resource_monitor.read_cpu_temp()
         if result is not None:
@@ -63,7 +63,7 @@ class TestReadOllamaStatus(unittest.TestCase):
 
     def test_returns_loaded_key_even_when_ollama_unreachable(self):
         # Whether or not Ollama is actually running on this machine,
-        # the function must never raise — always return a dict with
+        # the function must never raise - always return a dict with
         # a 'loaded' key.
         result = resource_monitor.read_ollama_status()
         self.assertIn('loaded', result)

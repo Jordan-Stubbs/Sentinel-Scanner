@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# install.sh — Sentinel installer
+# install.sh - Sentinel installer
 #
 # Detects its own install location and the current user automatically
 # (thanks to config.py, nothing in the Python codebase assumes a
@@ -11,7 +11,7 @@
 # SAFE TO RE-RUN: every generated file (sudoers entry, systemd units)
 # is written fresh from a template each time, not appended to. So if
 # a future update needs a new permission or dependency, just update
-# this script and run it again — it won't duplicate or break the
+# this script and run it again - it won't duplicate or break the
 # existing install.
 #
 # Usage:
@@ -30,7 +30,7 @@ ok()   { echo "[+] $1"; }
 warn() { echo "[!] $1"; }
 
 echo "============================================================"
-echo "  PORTABLE NETWORK VULNERABILITY SCANNER — INSTALLER"
+echo "  PORTABLE NETWORK VULNERABILITY SCANNER - INSTALLER"
 echo "============================================================"
 log "Install directory: $SCRIPT_DIR"
 log "Install user:      $INSTALL_USER"
@@ -46,7 +46,7 @@ elif command -v apt-get &> /dev/null; then
     sudo apt-get install -y nmap
     ok "nmap installed."
 else
-    warn "apt-get not found — please install nmap manually for your distro, then re-run this script."
+    warn "apt-get not found - please install nmap manually for your distro, then re-run this script."
 fi
 
 log "Checking for Ollama..."
@@ -93,7 +93,7 @@ if sudo visudo -cf "$SUDOERS_TMP"; then
     sudo chmod 0440 "$SUDOERS_FILE"
     ok "Sudoers entry installed."
 else
-    warn "Generated sudoers file failed validation — skipping. Scans requiring sudo will prompt for a password until this is fixed manually."
+    warn "Generated sudoers file failed validation - skipping. Scans requiring sudo will prompt for a password until this is fixed manually."
 fi
 rm -f "$SUDOERS_TMP"
 echo ""
@@ -107,12 +107,12 @@ while true; do
     if [ "$DASH_PASS" = "$DASH_PASS_CONFIRM" ] && [ -n "$DASH_PASS" ]; then
         break
     fi
-    warn "Passwords didn't match or were empty — try again."
+    warn "Passwords didn't match or were empty - try again."
 done
 echo ""
 
 # ── 4b. Dashboard port ──────────────────────────────────────
-# Defaults to 5000, but some setups need something else — e.g. this
+# Defaults to 5000, but some setups need something else - e.g. this
 # project's own dev machine also runs a separate WireGuard dashboard
 # that needed a specific port, which is exactly the kind of conflict
 # this prompt exists to avoid discovering after the fact.
@@ -120,7 +120,7 @@ read -p "    Dashboard port [5000]: " DASH_PORT
 DASH_PORT="${DASH_PORT:-5000}"
 echo ""
 
-# ── 5. systemd service — dashboard ──────────────────────────
+# ── 5. systemd service - dashboard ──────────────────────────
 log "Setting up the dashboard systemd service..."
 sudo tee /etc/systemd/system/scanner.service > /dev/null <<EOF
 [Unit]
@@ -148,7 +148,7 @@ sudo systemctl restart scanner
 ok "Dashboard service installed and running."
 echo ""
 
-# ── 6. systemd service — Ollama preload ─────────────────────
+# ── 6. systemd service - Ollama preload ─────────────────────
 log "Setting up the Ollama preload service (keeps phi3:mini resident in RAM)..."
 chmod +x "$SCRIPT_DIR/preload_ollama.sh"
 
@@ -184,13 +184,13 @@ if [[ "$BUILD_CACHE" =~ ^[Yy]$ ]]; then
     "$VENV_PYTHON" "$SCRIPT_DIR/build_cve_cache.py"
     ok "CVE cache built."
 else
-    log "Skipped — you can build it later with: $VENV_PYTHON build_cve_cache.py"
+    log "Skipped - you can build it later with: $VENV_PYTHON build_cve_cache.py"
 fi
 echo ""
 
 # ── 8b. Optional: automatic CVE cache refresh schedule ──────
 # Note: cron only fires if this machine is actually powered on and
-# online at the scheduled time — a convenience layer on top of manual
+# online at the scheduled time - a convenience layer on top of manual
 # refreshing, not a guarantee, especially on a portable device.
 DAY_NAMES=(Sunday Monday Tuesday Wednesday Thursday Friday Saturday)
 
@@ -202,7 +202,7 @@ read_time() {
             MINUTE="${BASH_REMATCH[2]}"
             break
         else
-            warn "That doesn't look like a valid time — try something like 3:00 or 14:30."
+            warn "That doesn't look like a valid time - try something like 3:00 or 14:30."
         fi
     done
 }
@@ -212,7 +212,7 @@ echo "  1) Daily at 3:00 AM (recommended)"
 echo "  2) Daily, at a time I choose"
 echo "  3) Weekly, on a day and time I choose"
 echo "  4) Monthly, on the 1st at 3:00 AM"
-echo "  5) Don't schedule anything — refresh manually later"
+echo "  5) Don't schedule anything - refresh manually later"
 read -p "Choice [1-5]: " CRON_CHOICE
 
 CRON_DESCRIPTION=""
@@ -235,7 +235,7 @@ case "$CRON_CHOICE" in
         done
         read -p "    Choice [0-6]: " DOW
         if ! [[ "$DOW" =~ ^[0-6]$ ]]; then
-            warn "That's not a valid day — defaulting to Sunday."
+            warn "That's not a valid day - defaulting to Sunday."
             DOW=0
         fi
         read_time
@@ -269,7 +269,7 @@ CRONEOF
     sudo chmod 0644 "$CRON_FILE"
     ok "CVE cache auto-refresh scheduled: $CRON_DESCRIPTION"
 else
-    log "No auto-refresh scheduled — run '$VENV_PYTHON build_cve_cache.py' manually anytime."
+    log "No auto-refresh scheduled - run '$VENV_PYTHON build_cve_cache.py' manually anytime."
 fi
 echo ""
 

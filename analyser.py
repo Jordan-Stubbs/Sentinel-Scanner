@@ -125,9 +125,9 @@ RULES = [
         # operates over UDP, but this scanner only performs TCP scans
         # (nmap -sV -O --open, no -sU). A DNS server that answers
         # exclusively on UDP/53 would be invisible to this rule. In
-        # practice this hasn't caused a real miss — common DNS server
+        # practice this hasn't caused a real miss - common DNS server
         # software (dnsmasq, BIND, NSD) also answers on TCP/53, since
-        # it's required for zone transfers — but a minimal/embedded
+        # it's required for zone transfers - but a minimal/embedded
         # UDP-only implementation could still be missed. Deliberately
         # left as-is rather than adding UDP scanning, given the real
         # scan-time cost that would add for an unconfirmed benefit.
@@ -279,8 +279,8 @@ RULES = [
         'protocol': 'tcp',
         'ports': [5061],
         'severity': 'medium',
-        'description': "An encrypted SIP-TLS port is open. The transport itself is encrypted, so eavesdropping isn't the concern here — but toll fraud via weak or default account credentials is still possible regardless of transport encryption.",
-        'remediation': 'Ensure SIP accounts use strong, unique credentials — encryption alone does not prevent toll fraud from a compromised or weak account.'
+        'description': "An encrypted SIP-TLS port is open. The transport itself is encrypted, so eavesdropping isn't the concern here - but toll fraud via weak or default account credentials is still possible regardless of transport encryption.",
+        'remediation': 'Ensure SIP accounts use strong, unique credentials - encryption alone does not prevent toll fraud from a compromised or weak account.'
     },
     {
         'id': 'VULN-031',
@@ -306,7 +306,7 @@ RULES = [
         'protocol': 'tcp',
         'ports': [8123],
         'severity': 'critical',
-        'description': 'A Home Assistant instance is directly reachable. Home Assistant is often the central control point for a smart home — locks, cameras, alarms, and other connected devices — so unauthorised access here can mean far more than a typical service compromise.',
+        'description': 'A Home Assistant instance is directly reachable. Home Assistant is often the central control point for a smart home - locks, cameras, alarms, and other connected devices - so unauthorised access here can mean far more than a typical service compromise.',
         'remediation': 'Never expose Home Assistant directly to the internet. Use its built-in remote access (Nabu Casa) or a VPN instead, and ensure multi-factor authentication is enabled.'
     },
     {
@@ -315,7 +315,7 @@ RULES = [
         'protocol': 'tcp',
         'ports': [8008, 8009],
         'severity': 'low',
-        'description': "A Chromecast or Google Cast-enabled device is discoverable and reachable. This mainly allows someone on the network to cast content to the device without authorisation — a nuisance rather than a serious security risk, but still worth being aware of.",
+        'description': "A Chromecast or Google Cast-enabled device is discoverable and reachable. This mainly allows someone on the network to cast content to the device without authorisation - a nuisance rather than a serious security risk, but still worth being aware of.",
         'remediation': 'This is largely inherent to how Cast devices work on a local network. If it\'s a concern, isolate smart-TV/casting devices on a separate guest network segment.'
     },
     {
@@ -361,7 +361,7 @@ RULES = [
         'ports': [7],
         'severity': 'low',
         'description': 'The Echo service is exposed, which simply reflects back whatever data is sent to it. Not dangerous on its own, but a genuinely unnecessary legacy service that shouldn\'t be running today.',
-        'remediation': 'Disable the Echo service — it serves no practical purpose on a modern network.'
+        'remediation': 'Disable the Echo service - it serves no practical purpose on a modern network.'
     },
     {
         'id': 'VULN-040',
@@ -369,7 +369,7 @@ RULES = [
         'protocol': 'tcp',
         'ports': [25565],
         'severity': 'low',
-        'description': "A Minecraft server is directly reachable. This is common and often intentional for home-hosted game servers, and doesn't expose the host system itself — but an unprotected server can still be joined, griefed, or targeted for denial-of-service by anyone who finds it.",
+        'description': "A Minecraft server is directly reachable. This is common and often intentional for home-hosted game servers, and doesn't expose the host system itself - but an unprotected server can still be joined, griefed, or targeted for denial-of-service by anyone who finds it.",
         'remediation': 'If this is intentional, consider requiring a whitelist or authentication (e.g. online-mode account verification, or a proxy like Velocity) rather than leaving the server fully open to anyone.'
     },
 ]
@@ -465,7 +465,7 @@ if __name__ == "__main__":
         print(f"[!] {len(findings)} finding(s):\n")
         for f in findings:
             print(f"  [{f['severity'].upper()}] {f['name']}")
-            print(f"  Host: {f['host']} ({f['hostname']}) — Port {f['port']}")
+            print(f"  Host: {f['host']} ({f['hostname']}) - Port {f['port']}")
             print(f"  {f['description']}")
             print(f"  Fix: {f['remediation']}\n")
 

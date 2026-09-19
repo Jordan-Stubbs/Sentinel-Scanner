@@ -1,7 +1,7 @@
 """
 test_analyser.py
 
-Unit tests for analyser.py — validates rule matching, score
+Unit tests for analyser.py - validates rule matching, score
 calculation, and rating thresholds. Run from the scanner directory:
 
     cd ~/scanner
@@ -52,7 +52,7 @@ class TestAnalyseRuleMatching(unittest.TestCase):
         self.assertEqual(hosts_found, {'192.168.1.10', '192.168.1.11'})
 
     def test_udp_protocol_does_not_match_tcp_rule(self):
-        # All current rules are 'tcp' — a udp port should never match
+        # All current rules are 'tcp' - a udp port should never match
         host = make_host('192.168.1.10', 'test.local', {'udp': {23: {'service': 'telnet', 'version': ''}}})
         findings = analyse([host])
         self.assertEqual(findings, [])
@@ -130,7 +130,7 @@ class TestSeverityCounts(unittest.TestCase):
 
 class TestAllRulesFireCorrectly(unittest.TestCase):
     """
-    Data-driven coverage of every rule in analyser.RULES — loops over
+    Data-driven coverage of every rule in analyser.RULES - loops over
     the actual rule list rather than hardcoding each rule as a
     separate case, so this stays self-updating if rules are ever
     added, removed, or changed. Confirms each rule fires on its own
@@ -139,7 +139,7 @@ class TestAllRulesFireCorrectly(unittest.TestCase):
     """
 
     def test_rule_count_is_40(self):
-        # Regression guard — catches an accidental rule deletion/addition
+        # Regression guard - catches an accidental rule deletion/addition
         # going unnoticed. Update this number deliberately if the rule
         # set genuinely changes size. (19 original rules + 10 added
         # 2026-09-16: Elasticsearch/Kibana, Docker API, NFS, rsync,
@@ -147,9 +147,9 @@ class TestAllRulesFireCorrectly(unittest.TestCase):
         # + 1 added 2026-09-17: split the old combined SIP rule into
         # separate plain (5060) and TLS (5061) entries with accurate,
         # distinct wording for each.
-        # + 6 added 2026-09-17: home-network-specific batch — Jellyfin,
+        # + 6 added 2026-09-17: home-network-specific batch - Jellyfin,
         # CUPS/IPP, Home Assistant, Chromecast/Cast, Plex, Portainer.
-        # + 4 added 2026-09-17: low-severity batch — Finger, Ident,
+        # + 4 added 2026-09-17: low-severity batch - Finger, Ident,
         # Echo, and Minecraft. This is treated as the practical floor
         # of the hand-written rule set going forward.)
         self.assertEqual(len(RULES), 40)

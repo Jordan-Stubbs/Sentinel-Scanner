@@ -18,9 +18,9 @@ app = Flask(__name__)
 
 # ── Basic auth ───────────────────────────────────────────────
 # Credentials come from environment variables (set them in the
-# scanner.service systemd unit — see deployment notes) so nothing
+# scanner.service systemd unit - see deployment notes) so nothing
 # sensitive is hardcoded in this file. Falls back to a default
-# admin/changeme pair if unset — CHANGE THIS before relying on it.
+# admin/changeme pair if unset - CHANGE THIS before relying on it.
 DASHBOARD_USERNAME = os.environ.get('SCANNER_USERNAME', 'admin')
 DASHBOARD_PASSWORD = os.environ.get('SCANNER_PASSWORD', 'changeme')
 
@@ -47,7 +47,7 @@ def load_json(filepath):
         return json.load(f)
 
 def get_hostname():
-    """Actual machine hostname — used in the dashboard header instead
+    """Actual machine hostname - used in the dashboard header instead
     of a hardcoded 'Raspberry Pi 4' label, since this now also runs
     on other hardware (verified on an Ubuntu VM, 2026-08-25)."""
     try:
@@ -71,7 +71,7 @@ def get_history():
                 'score':           analysis.get('score'),
                 'rating':          analysis.get('rating'),
                 'findings':        len(analysis.get('findings', [])),
-                'duration':        analysis.get('duration', '—'),
+                'duration':        analysis.get('duration', '-'),
                 'severity_counts': analysis.get('severity_counts', {}),
             })
     return entries
@@ -94,7 +94,7 @@ def read_cpu_percent():
 
         if _cpu_last['total'] is None:
             _cpu_last = {'total': total, 'idle': idle}
-            return None  # first call — no delta available yet
+            return None  # first call - no delta available yet
 
         total_delta = total - _cpu_last['total']
         idle_delta  = idle - _cpu_last['idle']
@@ -110,7 +110,7 @@ def read_cpu_percent():
 
 # read_memory, read_cpu_temp, read_ollama_status, and read_uptime are
 # shared with main.py (which uses them for point-in-time snapshots
-# saved into scan history) — defined once in resource_monitor.py
+# saved into scan history) - defined once in resource_monitor.py
 # rather than duplicated here.
 from resource_monitor import read_memory, read_cpu_temp, read_ollama_status, read_uptime
 
@@ -201,7 +201,7 @@ def view_diff(id_a, id_b):
 @app.route('/checks')
 def view_checks():
     """
-    A plain-language listing of every check this scanner performs —
+    A plain-language listing of every check this scanner performs -
     reads directly from analyser.RULES rather than a separately
     maintained description, so it can never drift out of sync with
     what the scanner actually checks for.
@@ -219,7 +219,7 @@ def view_checks():
 
 @app.route('/api/history-trend')
 def api_history_trend():
-    # get_history() returns newest-first (for the browsing list) —
+    # get_history() returns newest-first (for the browsing list) -
     # charting wants chronological order, oldest to newest.
     entries = list(reversed(get_history()))
     return jsonify([
@@ -320,13 +320,13 @@ def trigger_scan():
         if not generate_ai_report:
             cmd.append('--skip-ai-report')
 
-        # Written HERE, synchronously, before main.py is even spawned —
+        # Written HERE, synchronously, before main.py is even spawned -
         # not left for that process to report once it gets around to
         # it. main.py needs to finish its own Python startup and
         # imports (analyser, llm_reporter, cve_lookup, etc.) before it
         # reaches its own first status write, which can take long
         # enough that a poll firing immediately after triggering could
-        # still see the PREVIOUS scan's leftover 'complete' status —
+        # still see the PREVIOUS scan's leftover 'complete' status -
         # causing the frontend to think the old scan just finished
         # (flashing the bar, then reloading the page) while the real
         # new scan silently kept running in the background. Same root
@@ -339,7 +339,7 @@ def trigger_scan():
                 'percent': 5,
                 'running': True,
                 # Known immediately, since it's parsed from the request
-                # just above — no need to wait for main.py to take over
+                # just above - no need to wait for main.py to take over
                 # before the dashboard can show whether this scan will
                 # skip the AI report.
                 'ai_report_enabled': generate_ai_report,
@@ -379,7 +379,7 @@ def correlate_traffic_flags(data):
 def trigger_traffic_monitor():
     """
     Starts a fixed-duration packet capture in the background and
-    returns immediately — the dashboard learns what's happening by
+    returns immediately - the dashboard learns what's happening by
     polling /api/traffic-status, the same pattern already used for
     the vulnerability scan. A single blocking request/response was
     tried first but had a real problem: refreshing the page during
@@ -408,7 +408,7 @@ def trigger_traffic_monitor():
             duration = 60
 
         # Written HERE, synchronously, before the background process
-        # is even spawned — not left for that process to report once
+        # is even spawned - not left for that process to report once
         # it eventually starts. Python startup plus importing scapy
         # can genuinely take several seconds on a Raspberry Pi, so
         # waiting for the background process to self-report "running"
@@ -416,7 +416,7 @@ def trigger_traffic_monitor():
         # would still see the PREVIOUS run's leftover status and
         # results, wrongly concluding nothing new had started. Since
         # this request itself writes accurate status immediately,
-        # every poll — even the very first one — sees the truth
+        # every poll - even the very first one - sees the truth
         # right away, with no race to guess a grace period around.
         started_at = time.time()
         with open(config.TRAFFIC_STATUS_PATH, 'w') as f:
@@ -457,7 +457,7 @@ def stop_traffic_monitor():
                 subprocess.run(['sudo', 'kill', pid])
 
         # The killed process never gets a chance to write its own
-        # "finished" status or results — this route resets both
+        # "finished" status or results - this route resets both
         # directly, same pattern as stop_scan() for the vulnerability
         # scanner. Results are explicitly overwritten rather than left
         # untouched, so the dashboard shows a clear "stopped" message
@@ -484,7 +484,7 @@ def stop_traffic_monitor():
 @app.route('/api/traffic-status')
 def traffic_status_poll():
     """
-    Polled by the dashboard — reports whatever traffic_monitor.py
+    Polled by the dashboard - reports whatever traffic_monitor.py
     (running as its own background process) has most recently written.
     Works correctly regardless of page reloads, since it reads from
     disk rather than any in-memory request state: a fresh page load
@@ -511,7 +511,7 @@ def traffic_status_poll():
 def build_findings_csv(analysis, scan_hosts=None):
     """Flatten a scan's findings into CSV rows for spreadsheet use.
     If scan_hosts is given, a second 'Discovered Hosts' table is
-    appended below the findings table, separated by a blank row —
+    appended below the findings table, separated by a blank row -
     this covers devices with zero findings, which the findings table
     alone would never mention at all."""
     output = io.StringIO()

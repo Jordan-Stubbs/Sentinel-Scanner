@@ -1,7 +1,7 @@
 """
 test_resolve_service_name.py
 
-Unit tests for cve_lookup.py's resolve_service_name() — the function
+Unit tests for cve_lookup.py's resolve_service_name() - the function
 that decides what product name (if any) to search CVEs for, given
 nmap's detected service category and product string.
 
@@ -46,7 +46,7 @@ class TestResolveServiceName(unittest.TestCase):
         )
 
     def test_genuine_apache_still_correctly_identified(self):
-        # The fix must not lose real detection — only remove the
+        # The fix must not lose real detection - only remove the
         # blind guess when nmap couldn't identify anything specific.
         self.assertEqual(
             resolve_service_name('http', 'Apache httpd'),
@@ -68,7 +68,7 @@ class TestResolveServiceName(unittest.TestCase):
         )
 
     def test_explicit_exclusion_always_skipped(self):
-        # tcpwrapped/iphone-sync etc. are excluded outright — even if
+        # tcpwrapped/iphone-sync etc. are excluded outright - even if
         # nmap somehow reports a product string for them.
         self.assertIsNone(resolve_service_name('tcpwrapped', ''))
         self.assertIsNone(resolve_service_name('tcpwrapped', 'SomeApp'))

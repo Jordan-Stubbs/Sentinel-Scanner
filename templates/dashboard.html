@@ -788,7 +788,7 @@
     <h1>Sentinel</h1>
     <div class="header-right">
         <a href="/checks" class="header-link">Vulnerability Checks</a>
-        <span>{{ hostname }} — Local Network Audit</span>
+        <span>{{ hostname }} - Local Network Audit</span>
     </div>
 </header>
 
@@ -834,7 +834,7 @@
 
     {% if viewing_history %}
     <div class="history-banner">
-        ⚠ Viewing historical scan from {{ analysis.timestamp if analysis and analysis.timestamp else viewing_history }} —
+        ⚠ Viewing historical scan from {{ analysis.timestamp if analysis and analysis.timestamp else viewing_history }} -
         <a href="/">Back to latest</a>
     </div>
     {% endif %}
@@ -912,11 +912,11 @@
                     {% endif %}
                 </div>
                 <div class="summary-tile">
-                    <div class="tile-value dim">{{ analysis.duration if analysis.duration else '—' }}</div>
+                    <div class="tile-value dim">{{ analysis.duration if analysis.duration else '-' }}</div>
                     <div class="tile-label">Duration</div>
                 </div>
                 <div class="summary-tile span-full">
-                    <div class="tile-value">{{ analysis.timestamp if analysis.timestamp else '—' }}</div>
+                    <div class="tile-value">{{ analysis.timestamp if analysis.timestamp else '-' }}</div>
                     <div class="tile-label">Scanned</div>
                 </div>
             </div>
@@ -964,15 +964,15 @@
             </div>
             <div class="stat-grid" id="traffic-stat-grid" style="display:none;">
                 <div class="stat-tile">
-                    <div class="v" id="stat-duration">—</div>
+                    <div class="v" id="stat-duration">-</div>
                     <div class="l">Duration</div>
                 </div>
                 <div class="stat-tile">
-                    <div class="v" id="stat-packets">—</div>
+                    <div class="v" id="stat-packets">-</div>
                     <div class="l">Packets Seen</div>
                 </div>
                 <div class="stat-tile" id="stat-findings-tile">
-                    <div class="v" id="stat-findings">—</div>
+                    <div class="v" id="stat-findings">-</div>
                     <div class="l">Findings</div>
                 </div>
             </div>
@@ -984,27 +984,27 @@
         <p class="section-title">System Resources</p>
         <div class="resource-grid" id="resource-grid">
             <div class="summary-tile">
-                <div class="tile-value" id="res-cpu">—</div>
+                <div class="tile-value" id="res-cpu">-</div>
                 <div class="tile-label">CPU Usage</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-temp">—</div>
+                <div class="tile-value" id="res-temp">-</div>
                 <div class="tile-label">CPU Temp</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-ram">—</div>
+                <div class="tile-value" id="res-ram">-</div>
                 <div class="tile-label">RAM Used</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-avail">—</div>
+                <div class="tile-value" id="res-avail">-</div>
                 <div class="tile-label">RAM Available</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-ollama">—</div>
+                <div class="tile-value" id="res-ollama">-</div>
                 <div class="tile-label">Ollama Model</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-uptime">—</div>
+                <div class="tile-value" id="res-uptime">-</div>
                 <div class="tile-label">Uptime</div>
             </div>
         </div>
@@ -1056,13 +1056,13 @@
                 <div class="finding-host">
                     {{ f.host }}
                     {% if f.hostname %}({{ f.hostname }}){% endif %}
-                    {% if f.vendor and f.vendor != 'Unknown' %} — {{ f.vendor }}{% endif %}
-                    — Port {{ f.port }}
+                    {% if f.vendor and f.vendor != 'Unknown' %} - {{ f.vendor }}{% endif %}
+                    - Port {{ f.port }}
                 </div>
                 {% if (f.os and f.os != 'Unknown') or f.product %}
                 <div class="finding-meta">
                     {% if f.os and f.os != 'Unknown' %}Device: {{ f.os }}{% endif %}
-                    {% if f.os and f.os != 'Unknown' and f.product %} — {% endif %}
+                    {% if f.os and f.os != 'Unknown' and f.product %} - {% endif %}
                     {% if f.product %}Detected: {{ f.product }}{% endif %}
                 </div>
                 {% endif %}
@@ -1075,7 +1075,7 @@
 
         <!-- AI Report -->
         <p class="section-title">AI Generated Report</p>
-        <div class="report-box" id="report-box">{% if report %}{{ report }}{% elif analysis.ai_report_status == 'opted_out' %}<span style="color:#ffcc00; font-style:italic;">AI report was not generated — disabled for this scan.</span>{% elif analysis.ai_report_status == 'no_findings' %}<span style="color:#333; font-style:italic;">No vulnerabilities found — no AI report needed.</span>{% else %}<span style="color:#333; font-style:italic;">Run a scan to generate an AI report.</span>{% endif %}</div>
+        <div class="report-box" id="report-box">{% if report %}{{ report }}{% elif analysis.ai_report_status == 'opted_out' %}<span style="color:#ffcc00; font-style:italic;">AI report was not generated - disabled for this scan.</span>{% elif analysis.ai_report_status == 'no_findings' %}<span style="color:#333; font-style:italic;">No vulnerabilities found - no AI report needed.</span>{% else %}<span style="color:#333; font-style:italic;">Run a scan to generate an AI report.</span>{% endif %}</div>
 
     {% else %}
         <div class="no-data">
@@ -1144,15 +1144,15 @@
             </div>
             <div class="stat-grid" id="traffic-stat-grid" style="display:none;">
                 <div class="stat-tile">
-                    <div class="v" id="stat-duration">—</div>
+                    <div class="v" id="stat-duration">-</div>
                     <div class="l">Duration</div>
                 </div>
                 <div class="stat-tile">
-                    <div class="v" id="stat-packets">—</div>
+                    <div class="v" id="stat-packets">-</div>
                     <div class="l">Packets Seen</div>
                 </div>
                 <div class="stat-tile" id="stat-findings-tile">
-                    <div class="v" id="stat-findings">—</div>
+                    <div class="v" id="stat-findings">-</div>
                     <div class="l">Findings</div>
                 </div>
             </div>
@@ -1163,27 +1163,27 @@
         <p class="section-title">System Resources</p>
         <div class="resource-grid" id="resource-grid">
             <div class="summary-tile">
-                <div class="tile-value" id="res-cpu">—</div>
+                <div class="tile-value" id="res-cpu">-</div>
                 <div class="tile-label">CPU Usage</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-temp">—</div>
+                <div class="tile-value" id="res-temp">-</div>
                 <div class="tile-label">CPU Temp</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-ram">—</div>
+                <div class="tile-value" id="res-ram">-</div>
                 <div class="tile-label">RAM Used</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-avail">—</div>
+                <div class="tile-value" id="res-avail">-</div>
                 <div class="tile-label">RAM Available</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-ollama">—</div>
+                <div class="tile-value" id="res-ollama">-</div>
                 <div class="tile-label">Ollama Model</div>
             </div>
             <div class="summary-tile">
-                <div class="tile-value" id="res-uptime">—</div>
+                <div class="tile-value" id="res-uptime">-</div>
                 <div class="tile-label">Uptime</div>
             </div>
         </div>
@@ -1249,7 +1249,7 @@
             <span class="history-findings">{{ h.findings }} finding(s)</span>
             <span class="history-duration">{{ h.duration }}</span>
             <span class="history-score {{ h.rating | lower }}">
-                {{ h.score }}/100 — {{ h.rating }}
+                {{ h.score }}/100 - {{ h.rating }}
             </span>
         </a>
         {% endfor %}
@@ -1294,7 +1294,7 @@
 
                 // Real progress data is now flowing, so any trigger-
                 // time notice (already-running, couldn't start) is no
-                // longer needed — this is what's showing it now.
+                // longer needed - this is what's showing it now.
                 const triggerWarn = document.getElementById('scan-trigger-warning');
                 if (triggerWarn) triggerWarn.style.display = 'none';
                 const triggerErr = document.getElementById('scan-trigger-error');
@@ -1321,7 +1321,7 @@
                 msg.classList.remove('error');
                 fill.style.width = data.percent + '%';
                 // The stage indicators (①-⑥) already show which step is
-                // active — this routine per-stage text ("Scanning
+                // active - this routine per-stage text ("Scanning
                 // network...", "Analysing findings...", etc.) was
                 // redundant with that, so it's cleared here rather than
                 // shown. The 'error' state (handled above, returns
@@ -1334,13 +1334,13 @@
 
                 // Hide the AI Report stage entirely (rather than just
                 // relabeling it "(Skipped)") when this specific running
-                // scan has AI reporting disabled — read from the
+                // scan has AI reporting disabled - read from the
                 // backend (main.py sets this from the flag it was
                 // actually started with), not from the checkbox's
                 // current on-page state, since those can differ (e.g.
                 // this poll could be showing someone else's already-
                 // running scan, started with a different setting).
-                // The later stages renumber to fill the gap — this is
+                // The later stages renumber to fill the gap - this is
                 // purely cosmetic display text; updateStages() above
                 // already matched the active stage by name, not by
                 // number, so renumbering here doesn't affect that.
@@ -1363,7 +1363,7 @@
                 if (stopBtn) stopBtn.style.display = 'inline-block';
 
                 if (data.stage === 'complete') {
-                    msg.textContent = 'Scan complete — reloading...';
+                    msg.textContent = 'Scan complete - reloading...';
                     if (stopBtn) stopBtn.style.display = 'none';
                     setTimeout(() => { window.location.reload(); }, 2000);
                     stopPolling();
@@ -1389,7 +1389,7 @@
         const btn      = document.getElementById('scan-btn');
         const status   = document.getElementById('scan-status');
         const aiToggle = document.getElementById('generate-ai-report');
-        // Default true if the checkbox somehow isn't on the page —
+        // Default true if the checkbox somehow isn't on the page -
         // never silently skip the report without explicit user intent.
         const generateAiReport = aiToggle ? aiToggle.checked : true;
 
@@ -1398,7 +1398,7 @@
         if (status) status.textContent = '';
         // scan-error-banner lives inside #progress-overlay and is only
         // for a scan that genuinely failed mid-progress (set by
-        // pollStatus() below) — untouched here. These two live next to
+        // pollStatus() below) - untouched here. These two live next to
         // the button itself instead, for trigger-time notices where no
         // scan is actually running yet, so they never borrow the
         // "Scan In Progress" display for something that isn't one.
@@ -1423,7 +1423,7 @@
 
                     if (data.conflict === 'scan') {
                         // A scan genuinely IS running (just not one
-                        // this click started) — resume polling so its
+                        // this click started) - resume polling so its
                         // live progress actually shows up via the real
                         // progress-overlay, instead of leaving a static
                         // message with no way to see current status
@@ -1433,7 +1433,7 @@
                         startPolling();
                     } else {
                         // Conflict is with Traffic Monitor, not
-                        // another scan — nothing is actually running
+                        // another scan - nothing is actually running
                         // server-side for THIS click, so there's
                         // nothing to poll. Just reset the button.
                         btn.disabled    = false;
@@ -1537,11 +1537,11 @@
         }
 
         // History IDs are date-based folder names (YYYY-MM-DD_HH-MM-SS),
-        // confirmed by get_history() sorting on the name itself — so a
+        // confirmed by get_history() sorting on the name itself - so a
         // plain string comparison reliably tells which is genuinely
         // earlier. Swapped here so the comparison is always correct
         // regardless of which dropdown the user happened to pick which
-        // scan in — otherwise "added"/"resolved" findings would be
+        // scan in - otherwise "added"/"resolved" findings would be
         // silently backwards whenever picked out of order.
         if (fromId > toId) {
             [fromId, toId] = [toId, fromId];
@@ -1577,7 +1577,7 @@
         const points = data.map((d, i) => `${xFor(i)},${yFor(d.score)}`).join(' ');
         const dots = data.map((d, i) =>
             `<circle cx="${xFor(i)}" cy="${yFor(d.score)}" r="3.5" fill="#00ff88">` +
-            `<title>${d.timestamp} — ${d.score}/100 (${d.findings} finding(s))</title></circle>`
+            `<title>${d.timestamp} - ${d.score}/100 (${d.findings} finding(s))</title></circle>`
         ).join('');
 
         container.innerHTML = `
@@ -1607,7 +1607,7 @@
         const colours = { critical: '#ff4444', high: '#ff8800', medium: '#ffcc00', low: '#00ff88' };
 
         // Scale the y-axis to whatever the largest count actually is,
-        // rather than a fixed 0-100 like the score chart — severity
+        // rather than a fixed 0-100 like the score chart - severity
         // counts have no natural ceiling.
         let maxCount = 1;
         data.forEach(d => {
@@ -1641,7 +1641,7 @@
             data.forEach((d, i) => {
                 const v = (d.severity_counts && d.severity_counts[sev]) || 0;
                 lines += `<circle cx="${xFor(i)}" cy="${yFor(v)}" r="2.5" fill="${colours[sev]}">` +
-                         `<title>${d.timestamp} — ${sev}: ${v}</title></circle>`;
+                         `<title>${d.timestamp} - ${sev}: ${v}</title></circle>`;
             });
         });
 
@@ -1660,7 +1660,7 @@
                 renderTrendChart(data);
                 renderSeverityChart(data);
             })
-            .catch(() => { /* charts are optional — fail silently */ });
+            .catch(() => { /* charts are optional - fail silently */ });
     }
 
     loadTrendChart();
@@ -1668,7 +1668,7 @@
     // ── AI report toggle ─────────────────────────────────────
     // Previously the checkbox always reset to checked on page
     // reload (its hardcoded HTML default), which happens
-    // automatically 2s after a scan completes — so unchecking it,
+    // automatically 2s after a scan completes - so unchecking it,
     // running a scan, and watching it "check itself again" right
     // after was confusing about what the scan actually used (the
     // scan itself was always correct; only the display was
@@ -1803,7 +1803,7 @@
                     if (errBanner) errBanner.style.display = 'flex';
                     return;
                 }
-                // status === 'started' — app.py already wrote accurate
+                // status === 'started' - app.py already wrote accurate
                 // status synchronously before responding, so polling
                 // will see the truth immediately. This optimistic
                 // update just avoids a brief flicker waiting on the
@@ -1858,12 +1858,12 @@
                     if (track) track.style.display = 'block';
                     // Progress is computed from the server-recorded
                     // start time and duration, not a client-side timer
-                    // — this is what lets it correctly resume at the
+                    // - this is what lets it correctly resume at the
                     // right position after a page reload, rather than
                     // always restarting from 0%.
                     const countdown = document.getElementById('traffic-countdown');
                     if (fill && data.started_at && data.duration) {
-                        // Clamped to 0 — started_at comes from the Pi's
+                        // Clamped to 0 - started_at comes from the Pi's
                         // clock, Date.now() from the browser's. Tiny
                         // differences between the two can make this
                         // compute as slightly negative right at the
@@ -1875,7 +1875,7 @@
                         fill.style.width = pct + '%';
 
                         // A fixed, known duration is exactly what the
-                        // vulnerability scan doesn't have — worth
+                        // vulnerability scan doesn't have - worth
                         // showing here since we genuinely can.
                         const remaining = Math.max(0, Math.ceil(data.duration - (elapsedMs / 1000)));
                         if (countdown) {
@@ -1889,11 +1889,11 @@
                     return;
                 }
 
-                // Not running — either a capture just finished, or
+                // Not running - either a capture just finished, or
                 // none has ever run yet. app.py's trigger route writes
                 // the running status synchronously before this script
                 // even starts, so there's no race to guard against
-                // here anymore — a "not running" result can always be
+                // here anymore - a "not running" result can always be
                 // trusted immediately.
                 stopTrafficPolling();
                 setTrafficCapturingUI(false);
@@ -1926,7 +1926,7 @@
 
                     renderTrafficResults(data.results);
                 } else if (data.results && data.results.stopped) {
-                    // A user-initiated stop isn't really an "error" —
+                    // A user-initiated stop isn't really an "error" -
                     // worded and styled calmer than a genuine failure.
                     const warnBanner = document.getElementById('traffic-warning-banner');
                     const warnHead   = document.getElementById('traffic-warning-head');
@@ -2049,7 +2049,7 @@
                 }
 
                 if (uptimeEl) {
-                    uptimeEl.textContent = data.uptime || '—';
+                    uptimeEl.textContent = data.uptime || '-';
                 }
             })
             .catch(() => { /* silently skip a failed poll, try again next interval */ });
@@ -2058,7 +2058,7 @@
     pollSystemResources();
     setInterval(pollSystemResources, 4000);
 
-    // On page load — only poll if a scan is actively mid-progress
+    // On page load - only poll if a scan is actively mid-progress
     fetch('/api/status')
         .then(r => r.json())
         .then(data => {

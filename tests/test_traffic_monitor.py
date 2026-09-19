@@ -2,13 +2,13 @@
 test_traffic_monitor.py
 
 Unit tests for traffic_monitor.py's evaluate_port_hits() and
-evaluate_arp_hits() — the pure, testable detection logic, kept
+evaluate_arp_hits() - the pure, testable detection logic, kept
 deliberately separate from the actual packet capture (which needs a
 live network and root privileges, so isn't covered by unit tests,
 matching this project's existing testing philosophy).
 
 Requires scapy to be installed (traffic_monitor.py imports it at
-module level) — run from the scanner directory:
+module level) - run from the scanner directory:
 
     cd ~/scanner
     source venv/bin/activate

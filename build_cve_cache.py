@@ -25,7 +25,7 @@ USAGE (run manually, while the Pi has internet access):
     source venv/bin/activate
     python3 build_cve_cache.py
 
-Takes a few minutes — NVD's public rate limit without an API key is
+Takes a few minutes - NVD's public rate limit without an API key is
 5 requests per 30 seconds, so this sleeps 7s between requests to stay
 safely under that. Re-run periodically (e.g. every few weeks) to keep
 the cache reasonably current before a demo or evaluation session.
@@ -66,10 +66,10 @@ def query_nvd(keyword, results_per_page=RESULTS_PER_SERVICE, retries=3):
                 data = json.loads(response.read().decode('utf-8'))
                 return data.get('vulnerabilities', [])
         except urllib.error.URLError as e:
-            print(f"    [!] Request failed ({e}) — retrying in 5s...")
+            print(f"    [!] Request failed ({e}) - retrying in 5s...")
             time.sleep(5)
         except Exception as e:
-            print(f"    [!] Unexpected error ({e}) — retrying in 5s...")
+            print(f"    [!] Unexpected error ({e}) - retrying in 5s...")
             time.sleep(5)
 
     print(f"    [!] Giving up on '{keyword}' after {retries} attempts.")
@@ -92,7 +92,7 @@ def parse_entries(vulnerabilities):
                 'No description available.'
             )
 
-            # Get CVSS score — try v3.1, v3.0, v2 in order, same priority as cve_lookup.py
+            # Get CVSS score - try v3.1, v3.0, v2 in order, same priority as cve_lookup.py
             metrics = cve.get('metrics', {})
             score   = 0.0
             for cvss_key in ['cvssMetricV31', 'cvssMetricV30', 'cvssMetricV2']:
@@ -121,7 +121,7 @@ def parse_entries(vulnerabilities):
 
 
 def build_cache():
-    # Skip services mapped to None (e.g. tcpwrapped) — same list cve_lookup.py already uses
+    # Skip services mapped to None (e.g. tcpwrapped) - same list cve_lookup.py already uses
     products = sorted({p for p in SERVICES_OF_INTEREST.values() if p})
     print(f"[*] Building offline CVE cache for {len(products)} product(s)...")
 
@@ -130,9 +130,9 @@ def build_cache():
         try:
             with open(CVE_CACHE_PATH) as f:
                 cache = json.load(f)
-            print(f"[*] Loaded {len(cache)} existing cache entries — will merge and update.")
+            print(f"[*] Loaded {len(cache)} existing cache entries - will merge and update.")
         except Exception:
-            print("[!] Existing cache file unreadable — starting fresh.")
+            print("[!] Existing cache file unreadable - starting fresh.")
 
     for i, product in enumerate(products, 1):
         print(f"  [{i}/{len(products)}] Querying: {product}")

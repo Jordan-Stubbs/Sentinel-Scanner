@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scan Comparison — Sentinel</title>
+    <title>Scan Comparison - Sentinel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -125,7 +125,7 @@
 
 <header>
     <h1>Sentinel</h1>
-    <span>{{ hostname }} — Scan Comparison</span>
+    <span>{{ hostname }} - Scan Comparison</span>
 </header>
 
 <div class="container">
@@ -153,7 +153,7 @@
         {% elif diff.score_delta < 0 %}
         <div class="delta-badge worsened">▼ Worsened by {{ diff.score_delta | abs }}</div>
         {% else %}
-        <div class="delta-badge unchanged">— No change</div>
+        <div class="delta-badge unchanged">- No change</div>
         {% endif %}
     </div>
 
@@ -164,7 +164,7 @@
                 {% for h in diff.hosts_added %}
                 <div class="diff-card added">
                     <div class="item-name">+ {{ h.ip }}</div>
-                    <div class="item-meta">{{ h.hostname }} — newly appeared</div>
+                    <div class="item-meta">{{ h.hostname }} - newly appeared</div>
                 </div>
                 {% endfor %}
             {% else %}
@@ -176,7 +176,7 @@
                 {% for h in diff.hosts_removed %}
                 <div class="diff-card removed">
                     <div class="item-name">− {{ h.ip }}</div>
-                    <div class="item-meta">{{ h.hostname }} — no longer seen</div>
+                    <div class="item-meta">{{ h.hostname }} - no longer seen</div>
                 </div>
                 {% endfor %}
             {% else %}
@@ -195,7 +195,7 @@
                         + {{ f.name if f.name else f.cve_id }}
                         <span class="severity-tag {{ f.severity }}">{{ f.severity }}</span>
                     </div>
-                    <div class="item-meta">{{ f.host }} — Port {{ f.port }} — new finding</div>
+                    <div class="item-meta">{{ f.host }} - Port {{ f.port }} - new finding</div>
                 </div>
                 {% endfor %}
             {% else %}
@@ -210,7 +210,7 @@
                         ✓ {{ f.name if f.name else f.cve_id }}
                         <span class="severity-tag {{ f.severity }}">{{ f.severity }}</span>
                     </div>
-                    <div class="item-meta">{{ f.host }} — Port {{ f.port }} — resolved</div>
+                    <div class="item-meta">{{ f.host }} - Port {{ f.port }} - resolved</div>
                 </div>
                 {% endfor %}
             {% else %}

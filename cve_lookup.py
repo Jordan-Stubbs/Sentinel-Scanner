@@ -13,7 +13,7 @@ CVE_CACHE_PATH = config.CVE_CACHE_PATH
 # How many CVEs to fetch per service from NVD
 MAX_CVE_PER_SERVICE = 3
 
-# Ports to skip CVE lookup on — internal tools, unknown services etc.
+# Ports to skip CVE lookup on - internal tools, unknown services etc.
 SKIP_PORTS = {
     '8080',   # Generic proxy/dev ports
     '8888',   # Generic dev ports
@@ -33,7 +33,7 @@ SKIP_PORTS = {
     '8443',   # Generic HTTPS alt
 }
 # Always exclude the dashboard's own port, whatever it's currently
-# set to (config.DASHBOARD_PORT) — stays correct even if the port
+# set to (config.DASHBOARD_PORT) - stays correct even if the port
 # changes again in future, rather than needing a new hardcoded entry
 # added by hand each time.
 SKIP_PORTS.add(config.DASHBOARD_PORT)
@@ -243,13 +243,13 @@ def parse_offline_cache(matches, host, hostname, vendor, os_guess, product, port
             continue
     return findings
 
-# Services worth checking — mapped from nmap service category to a
+# Services worth checking - mapped from nmap service category to a
 # proper product name, used ONLY as a fallback when nmap couldn't
 # identify a specific product for that port (see resolve_service_name
 # below). Deliberately does NOT include 'http'/'https': too many
 # different real-world products share these generic categories
 # (Apache, nginx, a Flask/Werkzeug dev server, IIS, custom apps...)
-# to safely guess one — guessing wrong here produces confidently
+# to safely guess one - guessing wrong here produces confidently
 # wrong CVEs (this happened twice in practice: a Flask dashboard on
 # two different ports both got matched against unrelated Apache
 # SpamAssassin/Airflow CVEs). A lookup for http/https now only
@@ -266,8 +266,8 @@ SERVICES_OF_INTEREST = {
     'vnc':          'VNC',
     'sip':          'Asterisk',
     'socks5':       'SOCKS',
-    'iphone-sync':  None,  # Skip — no meaningful CVE lookup
-    'tcpwrapped':   None,  # Skip — service unknown
+    'iphone-sync':  None,  # Skip - no meaningful CVE lookup
+    'tcpwrapped':   None,  # Skip - service unknown
     'ajp13':        'Apache Tomcat',
     'blackice-icecap': None,
 }
@@ -278,14 +278,14 @@ def resolve_service_name(service, product):
     service category and (if any) its specifically detected product.
 
     Priority:
-    1. A real detected product name from nmap — trusted directly,
+    1. A real detected product name from nmap - trusted directly,
        regardless of category, since it's actual signal rather than
        a guess.
-    2. SERVICES_OF_INTEREST's static fallback guess — only for
+    2. SERVICES_OF_INTEREST's static fallback guess - only for
        categories judged reliable enough to guess safely even
        without a specific product (e.g. 'ssh' is overwhelmingly
        OpenSSH in practice).
-    3. Otherwise: return None, meaning "don't guess — skip this
+    3. Otherwise: return None, meaning "don't guess - skip this
        port's CVE lookup entirely." This deliberately replaces the
        old behaviour of capitalising any unrecognised service name
        and searching for it blindly.
@@ -305,12 +305,12 @@ def resolve_service_name(service, product):
         return product
 
     # Falls back to the static guess if this category has one, or
-    # None (skip) if it doesn't — a single lookup covers both cases.
+    # None (skip) if it doesn't - a single lookup covers both cases.
     return SERVICES_OF_INTEREST.get(service)
 
 def run_cve_lookup(scan_results):
     """
-    Main function — runs CVE lookup for all detected services.
+    Main function - runs CVE lookup for all detected services.
     Only queries services where nmap detected a specific version
     string AND either a specific product name or a category judged
     reliable enough to guess safely (see resolve_service_name).
@@ -337,12 +337,12 @@ def run_cve_lookup(scan_results):
 
                 clean_ver = clean_version(version)
                 if not clean_ver:
-                    print(f"  [CVE] Skipping {service} on port {port_num} — no version detected")
+                    print(f"  [CVE] Skipping {service} on port {port_num} - no version detected")
                     continue
 
                 service_name = resolve_service_name(service, product)
                 if service_name is None:
-                    print(f"  [CVE] Skipping {service} on port {port_num} — no specific product detected, category too ambiguous to guess safely")
+                    print(f"  [CVE] Skipping {service} on port {port_num} - no specific product detected, category too ambiguous to guess safely")
                     continue
 
                 keyword = build_search_query(service_name, clean_ver)
@@ -357,7 +357,7 @@ def run_cve_lookup(scan_results):
 
                 if vulns is None:
                     online_mode = False
-                    print(f"  [CVE] Offline mode — checking local cache for: {keyword}")
+                    print(f"  [CVE] Offline mode - checking local cache for: {keyword}")
                     offline_matches = query_nvd_offline(keyword)
                     if offline_matches:
                         findings = parse_offline_cache(
@@ -391,6 +391,6 @@ if __name__ == "__main__":
 
     for f in findings:
         print(f"  [{f['severity'].upper()}] {f['name']}")
-        print(f"  Host: {f['host']} ({f['hostname']}) — Port {f['port']}")
+        print(f"  Host: {f['host']} ({f['hostname']}) - Port {f['port']}")
         print(f"  {f['description']}")
         print(f"  Fix: {f['remediation']}\n")

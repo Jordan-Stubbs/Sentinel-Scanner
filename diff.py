@@ -5,7 +5,7 @@ Compares two past scans (from history/) and reports what changed:
 hosts that appeared or disappeared, findings that are new or
 resolved, and the score/rating delta.
 
-Uses data already saved in each history/<timestamp>/ folder — no new
+Uses data already saved in each history/<timestamp>/ folder - no new
 scanning logic needed.
 """
 
@@ -50,7 +50,7 @@ def _host_set(scan_data):
 def compare_scans(history_dir_a, history_dir_b):
     """
     Compare two history entries. 'a' is treated as the earlier scan,
-    'b' as the later one — the diff describes what changed going from
+    'b' as the later one - the diff describes what changed going from
     a to b.
 
     Returns a dict with hosts_added, hosts_removed, findings_new,

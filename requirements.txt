@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 #
 # Note: nmap and Ollama are separate system-level installs, not pip
-# packages — install.sh handles both automatically.
+# packages - install.sh handles both automatically.
 
 python-nmap
 scapy

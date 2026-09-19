@@ -13,7 +13,7 @@ VENV_PYTHON    = os.path.join(BASE_DIR, 'venv', 'bin', 'python3')
 MAIN_SCRIPT    = os.path.join(BASE_DIR, 'main.py')
 SCANNER_SCRIPT = os.path.join(BASE_DIR, 'scanner.py')
 
-# Traffic monitor — separate lock file from SCAN_STATUS_PATH, since
+# Traffic monitor - separate lock file from SCAN_STATUS_PATH, since
 # this is a genuinely different kind of on-demand check, not part of
 # the vulnerability-scan pipeline. Both trigger_scan() and the
 # traffic-monitor route check EACH OTHER's lock before starting, so

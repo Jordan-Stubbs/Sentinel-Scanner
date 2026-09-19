@@ -15,13 +15,13 @@ try:
 except Exception as import_error:
     # A failure here happens BEFORE `if __name__ == "__main__":` ever
     # runs, so the try/except further down in this file never gets a
-    # chance to catch it — a missing or broken module (e.g. a renamed
+    # chance to catch it - a missing or broken module (e.g. a renamed
     # or deleted .py file) would otherwise crash silently, leaving
     # scan_status.json stuck on whatever it last said and the
     # dashboard endlessly showing stale/looping status.
     #
     # Can't safely rely on config.SCAN_STATUS_PATH here since config
-    # itself might be what failed to import — so this computes the
+    # itself might be what failed to import - so this computes the
     # same default path config.py would, independently.
     import traceback
     traceback.print_exc()
@@ -52,19 +52,19 @@ def write_status(stage, message, percent, running=True):
             'running': running,
             # Read by the dashboard so the AI Report stage label and
             # indicator reflect what THIS scan was actually started
-            # with — a ground-truth server value, not just whatever
+            # with - a ground-truth server value, not just whatever
             # the browser's checkbox happens to show right now.
             'ai_report_enabled': not SKIP_AI_REPORT,
         }, f)
     # Ensure both root (this script, run via sudo) and admin (the Flask
-    # service) can read/write this file regardless of who wrote it last —
+    # service) can read/write this file regardless of who wrote it last -
     # prevents the root-owned-file-blocks-admin permission bug (bug 3/19).
     try:
         os.chmod(config.SCAN_STATUS_PATH, 0o666)
     except Exception:
         pass
 
-# Set via the dashboard's "Generate AI Report" checkbox — app.py's
+# Set via the dashboard's "Generate AI Report" checkbox - app.py's
 # trigger_scan() appends this flag to the command it spawns when the
 # user unchecks it. Skipping the LLM step removes the single biggest
 # CPU spike in the whole pipeline (99.9% CPU observed live during
@@ -73,7 +73,7 @@ def write_status(stage, message, percent, running=True):
 SKIP_AI_REPORT = '--skip-ai-report' in sys.argv
 
 def run_scanner():
-    write_status('scanning', 'Scanning network — this takes 2-3 minutes...', 10)
+    write_status('scanning', 'Scanning network - this takes 2-3 minutes...', 10)
     print("\n[*] Starting network scan...")
     result = subprocess.run(
         ['sudo', config.VENV_PYTHON, config.SCANNER_SCRIPT],
@@ -110,7 +110,7 @@ def run_analyser():
         print(f"[!] {len(findings)} finding(s):\n")
         for f in findings:
             print(f"  [{f['severity'].upper()}] {f['name']}")
-            print(f"  Host: {f['host']} ({f['hostname']}) — Port {f['port']}")
+            print(f"  Host: {f['host']} ({f['hostname']}) - Port {f['port']}")
             print(f"  {f['description']}")
             print(f"  Fix: {f['remediation']}\n")
 
@@ -122,11 +122,11 @@ def run_cve(scan_results):
 
     cve_findings, online_mode = run_cve_lookup(scan_results)
     mode_str = "online" if online_mode else "offline cache"
-    print(f"[+] CVE lookup complete ({mode_str}) — {len(cve_findings)} CVE(s) found\n")
+    print(f"[+] CVE lookup complete ({mode_str}) - {len(cve_findings)} CVE(s) found\n")
     return cve_findings, online_mode
 
 def run_llm_reporter():
-    write_status('reporting', 'Generating AI report — please wait...', 75)
+    write_status('reporting', 'Generating AI report - please wait...', 75)
     print("[*] Sending findings to Phi-3 Mini via Ollama...")
 
     report_path = config.LLM_REPORT_PATH
@@ -162,7 +162,7 @@ def save_to_history(duration_str):
 
     # This whole script runs under sudo (root), so every file/directory
     # created above is root-owned. Without this, the dashboard's own
-    # "Clear History" button — which runs as the admin user, not root —
+    # "Clear History" button - which runs as the admin user, not root -
     # fails with a PermissionError trying to delete them later. That
     # failure gets silently swallowed by app.py's clear_history() route
     # (which still returns HTTP 200) and the button just appears to do
@@ -191,15 +191,15 @@ def run_pipeline():
     resource_snapshots = {}
     resource_snapshots['start'] = resource_monitor.take_snapshot()
 
-    # Stage 1 — Scan
+    # Stage 1 - Scan
     run_scanner()
     write_status('scanning', 'Network scan complete.', 30)
 
-    # Stage 2 — Analyse
+    # Stage 2 - Analyse
     findings, score, rating, counts, meta, scan_results = run_analyser()
     write_status('analysing', 'Analysis complete.', 50)
 
-    # Stage 3 — CVE lookup
+    # Stage 3 - CVE lookup
     cve_findings, online_mode = run_cve(scan_results)
     write_status('cve', 'CVE lookup complete.', 65)
 
@@ -216,7 +216,7 @@ def run_pipeline():
     print(f"  FINAL SCORE (with CVEs): {final_score}/100  |  RATING: {final_rating}")
     print(f"{'='*50}\n")
 
-    # Distinguishes *why* there's no AI report — the dashboard shows a
+    # Distinguishes *why* there's no AI report - the dashboard shows a
     # different message for each: no vulnerabilities to report on at
     # all, vs. the user explicitly disabled it for this scan, vs. an
     # actual report being generated normally.
@@ -245,7 +245,7 @@ def run_pipeline():
 
     print("[+] Analysis saved to analysis_results.json\n")
 
-    # Stage 4 — AI report
+    # Stage 4 - AI report
     if total == 0:
         print("[+] No vulnerabilities found. Skipping AI report.")
         write_status('reporting', 'No vulnerabilities found.', 90)
@@ -299,7 +299,7 @@ if __name__ == "__main__":
         run_pipeline()
     except SystemExit:
         # run_scanner() already calls write_status('error', ...) and
-        # sys.exit(1) itself on a scanner failure — nothing more to
+        # sys.exit(1) itself on a scanner failure - nothing more to
         # do here, just don't let this fall through to the generic
         # handler below and overwrite that more specific message.
         raise
@@ -307,7 +307,7 @@ if __name__ == "__main__":
         # Guarantees scan_status.json always ends up with running:
         # False, no matter what goes wrong or where. Without this,
         # any unhandled error leaves the status file stuck showing
-        # running: true forever — and since trigger_scan() in app.py
+        # running: true forever - and since trigger_scan() in app.py
         # refuses to start a new scan while running is true, a single
         # crash would permanently lock out every future scan until
         # someone manually resets the file by hand.
